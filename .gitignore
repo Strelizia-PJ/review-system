@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-electron/
+release/
+*.exe
+*.blockmap
+.vite/
+.playwright-mcp/

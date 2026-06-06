@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__context7__query-docs",
+      "mcp__context7__resolve-library-id",
+      "mcp__Playwright__browser_take_screenshot",
+      "mcp__Playwright__browser_navigate",
+      "mcp__Playwright__browser_console_messages",
+      "mcp__Playwright__browser_snapshot",
+      "mcp__Playwright__browser_evaluate",
+      "mcp__Playwright__browser_resize",
+      "mcp__Playwright__browser_click"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '⛔ package-lock.json 不应直接编辑。请使用 npm install/uninstall 来管理依赖。' && exit 1",
+            "if": "Edit(*package-lock*) | Write(*package-lock*)"
+          }
+        ]
+      }
+    ]
+  }
+}

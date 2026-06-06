@@ -1,0 +1,22 @@
+appId: com.forgetting-curve.reminder
+productName: 忆芽
+directories:
+  output: release
+files:
+  - dist
+  - dist-electron
+extraResources:
+  - from: resources/icon.png
+    to: icon.png
+win:
+  icon: resources/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: ${productName}-Setup-${version}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+npmRebuild: false

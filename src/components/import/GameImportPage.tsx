@@ -1,4 +1,10 @@
 import { useState, useEffect } from 'react'
+import { Input } from '../ui/Input'
+import { Button } from '../ui/Button'
+import { Checkbox } from '../ui/Checkbox'
+import { ErrorBar, SuccessBar } from '../shared/Bars'
+import ConfirmDialog from '../shared/ConfirmDialog'
+import { cn } from '../../utils/cn'
 
 interface ScannedDay {
   date: string
@@ -15,6 +21,7 @@ export default function GameImportPage() {
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState('')
+  const [overwriteConfirm, setOverwriteConfirm] = useState(false)
 
   const api = () => window.electronAPI?.import
 
@@ -97,66 +104,55 @@ export default function GameImportPage() {
     .reduce((sum, d) => sum + d.gameMinutes, 0)
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg p-4 space-y-3 transition-colors">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200">导入 Chill with You 游戏记录</h3>
+    <div className="mx-auto max-w-2xl space-y-4">
+      <div className="space-y-3 rounded-lg border border-border bg-card p-4 transition-colors">
+        <h3 className="text-sm font-medium text-foreground">导入 Chill with You 游戏记录</h3>
 
         <div>
-          <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">存档目录</label>
+          <label className="mb-1 block text-xs text-muted-foreground">存档目录</label>
           <div className="flex gap-2">
-            <input
-              type="text"
+            <Input
               value={dirPath}
               onChange={e => handlePathChange(e.target.value)}
               placeholder="存档路径: .../LocalLow/Nestopi/Chill With You/SaveData/Release/v2/(SteamID)"
-              className="flex-1 px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-sm text-gray-800 dark:text-gray-100"
+              className="h-8 text-xs"
             />
-            <button
+            <Button
+              size="sm"
               onClick={handleScan}
               disabled={!dirPath.trim() || scanning}
-              className="px-4 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-40 transition-colors whitespace-nowrap"
+              className="whitespace-nowrap"
             >
               {scanning ? '扫描中...' : '扫描存档'}
-            </button>
+            </Button>
           </div>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="mt-1 text-xs text-muted-foreground">
             游戏存档通常位于: %LOCALAPPDATA%Low/Nestopi/Chill With You/SaveData/Release/v2/(SteamID)
           </p>
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-600 dark:text-red-400">
-          {error}
-        </div>
-      )}
-
-      {result && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 text-sm text-green-600 dark:text-green-400">
-          {result}
-        </div>
-      )}
+      {error && <ErrorBar>{error}</ErrorBar>}
+      {result && <SuccessBar>{result}</SuccessBar>}
 
       {days.length > 0 && (
         <>
-          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg p-4 space-y-2 transition-colors">
+          <div className="space-y-2 rounded-lg border border-border bg-card p-4 transition-colors">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200">
+              <h3 className="text-sm font-medium text-foreground">
                 扫描结果（{days.length} 天）
               </h3>
-              <label className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
-                <input
-                  type="checkbox"
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+                <Checkbox
                   checked={selectedDates.size === days.length}
-                  onChange={toggleAll}
-                  className="rounded"
+                  onCheckedChange={toggleAll}
                 />
                 全选
               </label>
             </div>
 
-            <div className="max-h-80 overflow-y-auto space-y-1">
-              <div className="grid grid-cols-12 gap-2 text-xs text-gray-400 dark:text-gray-500 pb-1 border-b border-gray-100 dark:border-gray-700">
+            <div className="max-h-80 space-y-1 overflow-y-auto">
+              <div className="grid grid-cols-12 gap-2 border-b border-border pb-1 text-xs text-muted-foreground">
                 <span className="col-span-2"></span>
                 <span className="col-span-4">日期</span>
                 <span className="col-span-3">游戏时长</span>
@@ -165,59 +161,60 @@ export default function GameImportPage() {
               {days.map(day => (
                 <label
                   key={day.date}
-                  className={`grid grid-cols-12 gap-2 items-center text-sm py-1.5 px-1 rounded cursor-pointer transition-colors ${
+                  className={cn(
+                    'grid cursor-pointer grid-cols-12 items-center gap-2 rounded-md px-1 py-1.5 text-sm transition-colors',
                     selectedDates.has(day.date)
-                      ? 'bg-blue-50 dark:bg-blue-900/20'
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
+                      ? 'bg-primary/10'
+                      : 'hover:bg-accent'
+                  )}
                 >
                   <span className="col-span-2">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selectedDates.has(day.date)}
-                      onChange={() => toggleDate(day.date)}
-                      className="rounded"
+                      onCheckedChange={() => toggleDate(day.date)}
                     />
                   </span>
-                  <span className="col-span-4 text-gray-700 dark:text-gray-200 text-xs">{day.date}</span>
-                  <span className="col-span-3 text-xs font-medium text-green-600 dark:text-green-400">
+                  <span className="col-span-4 text-xs text-foreground">{day.date}</span>
+                  <span className="col-span-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                     {formatHours(day.gameMinutes)}
                   </span>
-                  <span className="col-span-3 text-xs text-gray-400 dark:text-gray-500">
+                  <span className="col-span-3 text-xs text-muted-foreground">
                     {formatHours(day.localMinutes)}
                   </span>
                 </label>
               ))}
             </div>
 
-            <div className="border-t border-gray-100 dark:border-gray-700 pt-2 flex items-center justify-between text-sm">
-              <span className="text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-between border-t border-border pt-2 text-sm">
+              <span className="text-muted-foreground">
                 已选 {selectedDates.size} 天，共 {formatHours(selectedTotal)}
               </span>
-              <span className="text-gray-400 dark:text-gray-500">
+              <span className="text-muted-foreground">
                 扫描总计 {formatHours(totalMinutes)}
               </span>
             </div>
           </div>
 
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={() => handleImport(false)}
-              disabled={selectedDates.size === 0 || importing}
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-40 transition-colors font-medium"
-            >
+          <div className="flex justify-center gap-3">
+            <Button onClick={() => handleImport(false)} disabled={selectedDates.size === 0 || importing}>
               {importing ? '导入中...' : '导入选中记录'}
-            </button>
-            <button
-              onClick={() => handleImport(true)}
-              disabled={importing}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-40 transition-colors font-medium"
-            >
+            </Button>
+            <Button onClick={() => setOverwriteConfirm(true)} disabled={importing} className="bg-emerald-600 text-white hover:bg-emerald-700">
               全部覆盖
-            </button>
+            </Button>
           </div>
         </>
       )}
+
+      <ConfirmDialog
+        open={overwriteConfirm}
+        onOpenChange={setOverwriteConfirm}
+        title="全部覆盖"
+        description={`将用游戏存档记录覆盖全部 ${days.length} 天的本地学习时长，此操作不可撤销。确定继续吗？`}
+        confirmText="覆盖导入"
+        variant="destructive"
+        onConfirm={() => { setOverwriteConfirm(false); handleImport(true) }}
+      />
     </div>
   )
 }

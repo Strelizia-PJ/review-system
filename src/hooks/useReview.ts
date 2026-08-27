@@ -5,46 +5,37 @@ const api = () => window.electronAPI?.review
 
 interface ReviewState {
   todayItems: ReviewRecord[]
-  overdueItems: ReviewRecord[]
   stats: ReviewStats
   loading: boolean
   error: string | null
   statsLoading: boolean
+  lastRated: { reviewId: number; kpId: number; content: string; detail: string } | null
 
   fetchToday: () => Promise<void>
-  fetchOverdue: () => Promise<void>
   fetchStats: () => Promise<void>
   fetchAll: () => Promise<void>
-  rate: (reviewId: number, quality: number) => Promise<void>
+  rate: (reviewId: number, quality: number, customDays?: number) => Promise<void>
+  rollback: (reviewId: number) => Promise<void>
+  clearLastRated: () => void
 }
 
-export const useReview = create<ReviewState>((set) => ({
+export const useReview = create<ReviewState>((set, get) => ({
   todayItems: [],
-  overdueItems: [],
-  stats: { total: 0, todayPending: 0, overdue: 0, completed: 0, mastered: 0 },
+  stats: { total: 0, todayPending: 0, overdue: 0, completed: 0 },
   loading: false,
   error: null,
   statsLoading: false,
+  lastRated: null,
 
   fetchToday: async () => {
     if (!api()) return
+    set({ loading: true, error: null })
     try {
       const todayItems = await api()!.getToday()
-      set({ todayItems })
+      set({ todayItems, loading: false })
     } catch (e) {
       console.error('Failed to fetch today reviews:', e)
-      set({ error: '加载今日复习失败' })
-    }
-  },
-
-  fetchOverdue: async () => {
-    if (!api()) return
-    try {
-      const overdueItems = await api()!.getOverdue()
-      set({ overdueItems })
-    } catch (e) {
-      console.error('Failed to fetch overdue reviews:', e)
-      set({ error: '加载逾期复习失败' })
+      set({ loading: false, error: '加载今日复习失败' })
     }
   },
 
@@ -56,38 +47,58 @@ export const useReview = create<ReviewState>((set) => ({
       set({ stats, statsLoading: false })
     } catch (e) {
       console.error('Failed to fetch review stats:', e)
-      set({ statsLoading: false, error: '加载统计数据失败' })
+      set({ statsLoading: false })
     }
   },
 
   fetchAll: async () => {
+    await Promise.all([get().fetchToday(), get().fetchStats()])
+  },
+
+  rate: async (reviewId: number, quality: number, customDays?: number) => {
     if (!api()) return
-    set({ loading: true, error: null })
+    // Capture item info before rating for the verification card / undo
+    const item = get().todayItems.find(i => i.id === reviewId)
     try {
-      const [todayItems, overdueItems, stats] = await Promise.all([
+      await api()!.rate(reviewId, quality, customDays)
+      // Fetch the knowledge point detail for post-rating verification
+      let detail = ''
+      if (item) {
+        try {
+          const kp = await window.electronAPI?.knowledge?.getById(item.knowledge_point_id)
+          detail = kp?.detail || ''
+        } catch {
+          // detail unavailable — card falls back to title-only
+        }
+      }
+      const [todayItems, stats] = await Promise.all([
         api()!.getToday(),
-        api()!.getOverdue(),
         api()!.getStats()
       ])
-      set({ todayItems, overdueItems, stats, loading: false })
+      set({
+        todayItems, stats,
+        lastRated: item ? { reviewId, kpId: item.knowledge_point_id, content: item.content, detail } : null
+      })
     } catch (e) {
-      console.error('Failed to fetch review data:', e)
-      set({ loading: false, error: '加载复习数据失败' })
+      console.error('Failed to rate review:', e)
+      set({ lastRated: null })
     }
   },
 
-  rate: async (reviewId: number, quality: number) => {
+  rollback: async (reviewId: number) => {
     if (!api()) return
     try {
-      await api()!.rate(reviewId, quality)
-      const [todayItems, overdueItems, stats] = await Promise.all([
+      await api()!.rollback(reviewId)
+      set({ lastRated: null })
+      const [todayItems, stats] = await Promise.all([
         api()!.getToday(),
-        api()!.getOverdue(),
         api()!.getStats()
       ])
-      set({ todayItems, overdueItems, stats })
+      set({ todayItems, stats })
     } catch (e) {
-      console.error('Failed to rate review:', e)
+      console.error('Failed to rollback review:', e)
     }
-  }
+  },
+
+  clearLastRated: () => set({ lastRated: null })
 }))

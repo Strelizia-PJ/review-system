@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { KnowledgePoint, NavPage } from '../types'
+import { useReview } from './useReview'
 
 const api = () => window.electronAPI?.knowledge
 
@@ -18,6 +19,9 @@ interface KnowledgeState {
   setKeyword: (keyword: string) => void
   select: (id: number, source?: NavPage) => void
   deselect: () => void
+  forget: (id: number) => Promise<void>
+  setMaxInterval: (id: number, days: number | null) => Promise<void>
+  reschedule: (id: number, date: string) => Promise<void>
 }
 
 export const useKnowledge = create<KnowledgeState>((set, get) => ({
@@ -43,8 +47,11 @@ export const useKnowledge = create<KnowledgeState>((set, get) => ({
   add: async (content: string, learnDate?: string) => {
     if (!api()) return
     try {
-      await api()!.add(content, learnDate)
+      const result = await api()!.add(content, learnDate)
       await get().fetchList()
+      if (result?.id) {
+        set({ selectedId: result.id })
+      }
     } catch (e) {
       console.error('Failed to add knowledge point:', e)
       set({ error: '添加知识点失败' })
@@ -101,5 +108,43 @@ export const useKnowledge = create<KnowledgeState>((set, get) => ({
 
   deselect: () => {
     set({ selectedId: null, reviewSource: null })
+  },
+
+  forget: async (id: number) => {
+    if (!window.electronAPI?.review) return
+    try {
+      await window.electronAPI.review.forget(id)
+      await get().fetchList()
+      // Also refresh review stats so sidebar counters update immediately
+      useReview.getState().fetchAll()
+    } catch (e) {
+      console.error('Failed to forget knowledge point:', e)
+      set({ error: '重置知识点失败' })
+    }
+  },
+
+  setMaxInterval: async (id: number, days: number | null) => {
+    if (!api()) return
+    try {
+      await api()!.setMaxInterval(id, days)
+      await get().fetchList()
+      useReview.getState().fetchAll()
+    } catch (e) {
+      console.error('Failed to set knowledge point max interval:', e)
+      set({ error: '设置间隔上限失败' })
+    }
+  },
+
+  reschedule: async (id: number, date: string) => {
+    if (!api()) return
+    try {
+      await api()!.reschedule(id, date)
+      await get().fetchList()
+      // Moved review date may change today/overdue panels and sidebar counters
+      useReview.getState().fetchAll()
+    } catch (e) {
+      console.error('Failed to reschedule pending review:', e)
+      set({ error: '修改复习时间失败' })
+    }
   }
 }))

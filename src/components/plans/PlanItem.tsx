@@ -1,4 +1,10 @@
+import { useState } from 'react'
+import { X } from 'lucide-react'
 import type { DailyPlan } from '../../types'
+import { Checkbox } from '../ui/Checkbox'
+import { Badge, type BadgeProps } from '../shared/Badge'
+import ConfirmDialog from '../shared/ConfirmDialog'
+import { cn } from '../../utils/cn'
 import { DAY_LABELS_SUNDAY_FIRST, DAY_LABELS_MONDAY_FIRST, WEEKDAY_ORDER } from '../../constants'
 
 // Map dayjs day values (0=Sun..6=Sat) to Mon-first display order for weekly labels
@@ -24,13 +30,13 @@ function getTypeLabel(item: DailyPlan): string {
   }
 }
 
-function getTypeColor(item: DailyPlan): string {
+function getTypeVariant(item: DailyPlan): BadgeProps['variant'] {
   switch (item.type) {
-    case 'one-time': return 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-    case 'daily': return 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-    case 'weekly': return 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-    case 'interval': return 'bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400'
-    default: return 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+    case 'one-time': return 'warning'
+    case 'daily': return 'default'
+    case 'weekly': return 'neutral'
+    case 'interval': return 'success'
+    default: return 'neutral'
   }
 }
 
@@ -42,59 +48,68 @@ interface PlanItemProps {
 
 export default function PlanItem({ item, onToggle, onDelete }: PlanItemProps) {
   const notDue = item.type === 'weekly' && item.dueToday === false
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
 
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${
+    <div className={cn(
+      'flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors',
       item.completed
-        ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-700'
+        ? 'border-border bg-muted/50'
         : notDue
-          ? 'bg-white/50 dark:bg-gray-800/50 border-gray-100/50 dark:border-gray-700/50'
-          : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
-    }`}>
+          ? 'border-border/50 bg-card/50'
+          : 'border-border bg-card'
+    )}>
       {/* Checkbox */}
-      <button
-        onClick={() => onToggle(item.id)}
-        disabled={notDue}
-        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-          notDue
-            ? 'border-gray-200 dark:border-gray-600 cursor-not-allowed opacity-40'
-            : item.completed
-              ? 'bg-green-500 border-green-500 text-white'
-              : 'border-gray-300 dark:border-gray-500 hover:border-green-400'
-        }`}
-      >
-        {item.completed && (
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        )}
-      </button>
+      {notDue ? (
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 border-input opacity-40" />
+      ) : (
+        <Checkbox
+          checked={item.completed}
+          onCheckedChange={() => onToggle(item.id)}
+          className={cn('shrink-0 rounded-full', item.completed && 'border-emerald-500 bg-emerald-500 text-white data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500')}
+          id={`plan-${item.id}`}
+        />
+      )}
 
       {/* Content */}
-      <span className={`flex-1 text-sm transition-colors ${
-        notDue
-          ? 'text-gray-300 dark:text-gray-600'
-          : item.completed
-            ? 'text-gray-400 dark:text-gray-500 line-through'
-            : 'text-gray-800 dark:text-gray-100'
-      }`}>
+      <label
+        htmlFor={`plan-${item.id}`}
+        className={cn(
+          'flex-1 cursor-pointer text-sm transition-colors',
+          notDue
+            ? 'text-muted-foreground/50'
+            : item.completed
+              ? 'text-muted-foreground line-through'
+              : 'text-foreground'
+        )}
+      >
         {item.content}
-        {notDue && <span className="ml-2 text-[10px] text-gray-400 dark:text-gray-500 align-middle">非今日</span>}
-      </span>
+        {notDue && <span className="ml-2 align-middle text-[10px] text-muted-foreground">非今日</span>}
+      </label>
 
       {/* Type badge */}
-      <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${getTypeColor(item)}`}>
+      <Badge variant={getTypeVariant(item)} className="shrink-0">
         {getTypeLabel(item)}
-      </span>
+      </Badge>
 
       {/* Delete */}
       <button
-        onClick={() => onDelete(item.id)}
-        className="text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0"
+        onClick={() => setDeleteConfirm(true)}
+        className="shrink-0 rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive"
         title="删除"
       >
-        ×
+        <X className="h-4 w-4" />
       </button>
+
+      <ConfirmDialog
+        open={deleteConfirm}
+        onOpenChange={setDeleteConfirm}
+        title="确认删除"
+        description={`确定删除计划「${item.content.length > 20 ? item.content.slice(0, 20) + '...' : item.content}」吗？此操作不可撤销。`}
+        confirmText="确认删除"
+        variant="destructive"
+        onConfirm={() => { onDelete(item.id); setDeleteConfirm(false) }}
+      />
     </div>
   )
 }

@@ -7,12 +7,15 @@ const api = {
     delete: (id: number) => ipcRenderer.invoke('knowledge:delete', id),
     search: (keyword: string) => ipcRenderer.invoke('knowledge:search', keyword),
     update: (id: number, content?: string, detail?: string) => ipcRenderer.invoke('knowledge:update', id, content, detail),
-    getById: (id: number) => ipcRenderer.invoke('knowledge:get-by-id', id)
+    getById: (id: number) => ipcRenderer.invoke('knowledge:get-by-id', id),
+    setMaxInterval: (id: number, days: number | null) => ipcRenderer.invoke('knowledge:set-max-interval', id, days),
+    reschedule: (id: number, date: string) => ipcRenderer.invoke('knowledge:reschedule', id, date)
   },
   review: {
     getToday: () => ipcRenderer.invoke('review:get-today'),
-    getOverdue: () => ipcRenderer.invoke('review:get-overdue'),
-    rate: (reviewId: number, quality: number) => ipcRenderer.invoke('review:rate', reviewId, quality),
+    rate: (reviewId: number, quality: number, customDays?: number) => ipcRenderer.invoke('review:rate', reviewId, quality, customDays),
+    rollback: (reviewId: number) => ipcRenderer.invoke('review:rollback', reviewId),
+    forget: (kpId: number) => ipcRenderer.invoke('review:forget', kpId),
     getStats: () => ipcRenderer.invoke('review:get-stats')
   },
   settings: {
@@ -31,6 +34,13 @@ const api = {
     getRecent7: () => ipcRenderer.invoke('study:get-recent-7'),
     getMonthStats: (year: number, month: number) => ipcRenderer.invoke('study:get-month-stats', year, month),
     getMonthReviewStats: (year: number, month: number) => ipcRenderer.invoke('study:get-month-review-stats', year, month)
+  },
+  mistake: {
+    add: (content: string) => ipcRenderer.invoke('mistake:add', content),
+    list: () => ipcRenderer.invoke('mistake:list'),
+    increment: (id: number) => ipcRenderer.invoke('mistake:increment', id),
+    update: (id: number, content: string) => ipcRenderer.invoke('mistake:update', id, content),
+    remove: (id: number) => ipcRenderer.invoke('mistake:delete', id)
   },
   image: {
     save: (kpId: number, fileData: Uint8Array, originalName: string) => ipcRenderer.invoke('image:save', kpId, fileData, originalName)

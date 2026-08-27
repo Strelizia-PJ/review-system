@@ -10,7 +10,8 @@ import type {
   Recent7Stats,
   MonthStats,
   MonthReviewStats,
-  ScannedGameData
+  ScannedGameData,
+  MistakePoint
 } from './types'
 
 declare global {
@@ -23,11 +24,14 @@ declare global {
         search: (keyword: string) => Promise<KnowledgePoint[]>
         update: (id: number, content?: string, detail?: string) => Promise<void>
         getById: (id: number) => Promise<KnowledgePointDetail | null>
+        setMaxInterval: (id: number, days: number | null) => Promise<{ effectiveMaxIntervalDays: number }>
+        reschedule: (id: number, date: string) => Promise<{ scheduleDate: string }>
       }
       review: {
         getToday: () => Promise<ReviewRecord[]>
-        getOverdue: () => Promise<ReviewRecord[]>
-        rate: (reviewId: number, quality: number) => Promise<{ nextReviewDate: string | null; nextInterval: number }>
+        rate: (reviewId: number, quality: number, customDays?: number) => Promise<{ nextReviewDate: string | null; nextInterval: number }>
+        rollback: (reviewId: number) => Promise<{ content: string }>
+        forget: (kpId: number) => Promise<{ nextReviewDate: string }>
         getStats: () => Promise<ReviewStats>
       }
       settings: {
@@ -46,6 +50,13 @@ declare global {
         getRecent7: () => Promise<Recent7Stats>
         getMonthStats: (year: number, month: number) => Promise<MonthStats>
         getMonthReviewStats: (year: number, month: number) => Promise<MonthReviewStats>
+      }
+      mistake: {
+        add: (content: string) => Promise<{ id: number }>
+        list: () => Promise<MistakePoint[]>
+        increment: (id: number) => Promise<void>
+        update: (id: number, content: string) => Promise<void>
+        remove: (id: number) => Promise<void>
       }
       image: {
         save: (kpId: number, fileData: Uint8Array, originalName: string) => Promise<string>

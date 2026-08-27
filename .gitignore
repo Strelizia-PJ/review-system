@@ -6,3 +6,5 @@ release/
 *.blockmap
 .vite/
 .playwright-mcp/
+.mimosa/
+.zcode/

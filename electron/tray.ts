@@ -18,7 +18,7 @@ export function createTray(mainWindow: BrowserWindow): void {
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 })
 
   tray = new Tray(icon)
-  tray.setToolTip('忆芽')
+  tray.setToolTip('芝士学爆')
 
   const updateMenu = () => {
     const contextMenu = Menu.buildFromTemplate([

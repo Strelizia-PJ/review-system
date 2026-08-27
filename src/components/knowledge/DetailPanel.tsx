@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import MDEditor, { commands } from '@uiw/react-md-editor'
 import remarkMath from 'remark-math'
+import remarkBreaks from 'remark-breaks'
 import rehypeKatex from 'rehype-katex'
+import { ArrowLeft } from 'lucide-react'
 import type { KnowledgePointDetail } from '../../types'
+import { useTheme } from '../../hooks/useTheme'
 
 interface DetailPanelProps {
   kpId: number
@@ -16,28 +19,9 @@ export default function DetailPanel({ kpId, onBack, onUpdate }: DetailPanelProps
   const [detail, setDetail] = useState('')
   const [saving, setSaving] = useState(false)
   const [loadError, setLoadError] = useState(false)
-  const throttleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pendingDetailRef = useRef<string | null>(null)
-  const composingRef = useRef(false)
-
-  // Throttle MDEditor onChange to 300ms with IME composition support
-  const handleDetailChange = useCallback((val: string | undefined) => {
-    const value = val || ''
-    pendingDetailRef.current = value
-    if (composingRef.current) {
-      setDetail(value)
-      return
-    }
-    if (throttleRef.current) return
-    setDetail(value)
-    throttleRef.current = setTimeout(() => {
-      throttleRef.current = null
-      if (pendingDetailRef.current !== null && pendingDetailRef.current !== value) {
-        setDetail(pendingDetailRef.current)
-        pendingDetailRef.current = null
-      }
-    }, 300)
-  }, [])
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savingRef = useRef(false)
+  const { isDark } = useTheme()
 
   useEffect(() => {
     const loadDetail = async () => {
@@ -58,28 +42,59 @@ export default function DetailPanel({ kpId, onBack, onUpdate }: DetailPanelProps
 
   const saveDetail = useCallback(async (newDetail: string, newTitle?: string) => {
     const t = newTitle ?? title
-    if (saving) return
+    if (savingRef.current) return
+    // Clear pending auto-save timer so it doesn't fire after a manual save
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = null
+    }
+    savingRef.current = true
     setSaving(true)
     try {
       await onUpdate(kpId, t, newDetail)
+      setKp(prev => prev ? { ...prev, content: t, detail: newDetail } : null)
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
-  }, [kpId, title, saving, onUpdate])
+  }, [kpId, title, onUpdate])
 
-  useEffect(() => {
-    return () => {
-      if (throttleRef.current) clearTimeout(throttleRef.current)
+  // Keep ref in sync so the auto-save effect always calls the latest saveDetail
+  const saveDetailRef = useRef(saveDetail)
+  saveDetailRef.current = saveDetail
+
+  // Save then navigate back — no need to wait for auto-save
+  const handleSaveAndBack = useCallback(async () => {
+    if (title !== (kp?.content || '') || detail !== (kp?.detail || '')) {
+      await saveDetail(detail, title)
     }
-  }, [])
+    onBack()
+  }, [title, detail, kp, saveDetail, onBack])
+
+  // ESC → save and exit
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        handleSaveAndBack()
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [handleSaveAndBack])
 
   // Debounced auto-save: 2s after last edit
   useEffect(() => {
-    if (detail === (kp?.detail || '') && title === (kp?.content || '')) return
     if (!kp) return
-    const timer = setTimeout(() => saveDetail(detail, title), 2000)
-    return () => clearTimeout(timer)
-  }, [detail, title])
+    if (detail === (kp?.detail || '') && title === (kp?.content || '')) return
+    saveTimerRef.current = setTimeout(() => saveDetailRef.current(detail, title), 2000)
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = null
+      }
+    }
+  }, [detail, title, kp])
 
   // Custom image command — copies file to userData/images/ via IPC
   const imageCommand = {
@@ -104,40 +119,50 @@ export default function DetailPanel({ kpId, onBack, onUpdate }: DetailPanelProps
   return (
     <div className="flex flex-col h-full">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
-        <button onClick={onBack} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors text-sm">← 返回</button>
+      <div className="flex items-center gap-3 border-b border-border px-4 py-3 shrink-0 transition-colors">
+        <button
+          onClick={handleSaveAndBack}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          返回并保存
+        </button>
         <input
           type="text" value={title} onChange={e => setTitle(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur() } }}
           onBlur={() => saveDetail(detail, title)}
-          className="flex-1 text-lg font-semibold text-gray-800 dark:text-gray-100 bg-transparent border-none outline-none"
+          className="flex-1 bg-transparent text-lg font-semibold text-foreground outline-none placeholder:text-muted-foreground"
           placeholder="知识点标题"
         />
-        <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{saving ? '保存中...' : '已保存'}</span>
+        <span className="w-16 whitespace-nowrap text-center text-xs text-muted-foreground">
+          {loadError ? (
+            <span className="text-destructive">加载失败</span>
+          ) : kp === null ? (
+            <span>加载中...</span>
+          ) : saving ? (
+            <span>保存中...</span>
+          ) : title !== kp.content || detail !== kp.detail ? (
+            <span className="text-amber-500">未保存</span>
+          ) : (
+            <span>已保存</span>
+          )}
+        </span>
       </div>
 
       {/* Markdown editor */}
-      <div
-        className="flex-1 overflow-hidden"
-        data-color-mode="light"
-        onCompositionStart={() => { composingRef.current = true }}
-        onCompositionEnd={() => {
-          composingRef.current = false
-          if (throttleRef.current) { clearTimeout(throttleRef.current); throttleRef.current = null }
-          if (pendingDetailRef.current !== null) { setDetail(pendingDetailRef.current); pendingDetailRef.current = null }
-        }}
-      >
+      <div className="flex-1 overflow-hidden" data-color-mode={isDark ? 'dark' : 'light'}>
         {loadError ? (
-          <div className="flex items-center justify-center h-full text-gray-400 text-sm">加载失败</div>
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">加载失败</div>
         ) : (
         <MDEditor
           value={detail}
-          onChange={handleDetailChange}
+          onChange={val => setDetail(val || '')}
           height="100%"
           visibleDragbar={false}
           preview="live"
+          autoFocus
           previewOptions={{
-            remarkPlugins: [remarkMath],
+            remarkPlugins: [remarkMath, remarkBreaks],
             rehypePlugins: [[rehypeKatex, { throwOnError: false }]],
           }}
           commands={[commands.codeEdit, commands.codeLive, commands.codePreview]}

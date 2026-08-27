@@ -24,7 +24,7 @@ export function sendReviewReminder(
 
   // Hold reference to prevent GC from collecting the Notification before click
   activeNotification = new Notification({
-    title: '忆芽',
+    title: '芝士学爆',
     body,
     urgency: overdueCount > 0 ? 'critical' : 'normal'
   })

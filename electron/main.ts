@@ -11,9 +11,12 @@ import {
   deleteKnowledgePoint,
   updateKnowledgePoint,
   searchKnowledgePoints,
+  setKnowledgePointMaxInterval,
+  reschedulePendingReview,
   getTodayReviews,
-  getOverdueReviews,
   rateReview,
+  rollbackReview,
+  forgetKnowledgePoint,
   getReviewStats,
   addDailyPlan,
   getTodayPlans,
@@ -23,7 +26,12 @@ import {
   getWeekStats,
   getRecent7DaysStats,
   getMonthStats,
-  getMonthReviewStats
+  getMonthReviewStats,
+  addMistakePoint,
+  listMistakePoints,
+  incrementMistakePoint,
+  updateMistakePoint,
+  deleteMistakePoint
 } from './database/queries'
 import { scanGameSaves, applyGameData } from './database/game-import'
 import { saveImage, deleteImages, deleteOrphanImages } from './database/images'
@@ -35,10 +43,6 @@ import { enableAutoStart, disableAutoStart, isAutoStartEnabled } from './auto-st
 
 let mainWindow: BrowserWindow | null = null
 let isQuitting = false
-
-export function getMainWindow(): BrowserWindow | null {
-  return mainWindow
-}
 
 function getIconPath(): string {
   if (app.isPackaged) {
@@ -53,7 +57,7 @@ function createWindow() {
     height: 750,
     minWidth: 900,
     minHeight: 600,
-    title: '忆芽',
+    title: '芝士学爆',
     icon: getIconPath(),
     autoHideMenuBar: true,
     webPreferences: {
@@ -110,6 +114,26 @@ function setupIPC() {
     return getKnowledgePointById(id)
   })
 
+  ipcMain.handle('knowledge:set-max-interval', (_event, id: number, days: number | null) => {
+    try {
+      return setKnowledgePointMaxInterval(id, days)
+    } catch (e) {
+      console.error('Set knowledge point max interval failed:', e)
+      throw e
+    }
+  })
+
+  ipcMain.handle('knowledge:reschedule', (_event, id: number, date: string) => {
+    try {
+      const result = reschedulePendingReview(id, date)
+      checkAndNotify()
+      return result
+    } catch (e) {
+      console.error('Reschedule pending review failed:', e)
+      throw e
+    }
+  })
+
   ipcMain.handle('settings:get', (_event, key: string) => {
     const data = getData()
     return data.settings[key] ?? null
@@ -125,18 +149,36 @@ function setupIPC() {
     return getTodayReviews()
   })
 
-  ipcMain.handle('review:get-overdue', () => {
-    return getOverdueReviews()
-  })
-
-  ipcMain.handle('review:rate', (_event, reviewId: number, quality: number) => {
+  ipcMain.handle('review:rate', (_event, reviewId: number, quality: number, customDays?: number) => {
     try {
-      const result = rateReview(reviewId, quality)
+      const result = rateReview(reviewId, quality, customDays)
       // Refresh tray badge immediately after rating a review
       checkAndNotify()
       return result
     } catch (e) {
       console.error('Review rating failed:', e)
+      throw e
+    }
+  })
+
+  ipcMain.handle('review:rollback', (_event, reviewId: number) => {
+    try {
+      const result = rollbackReview(reviewId)
+      checkAndNotify()
+      return result
+    } catch (e) {
+      console.error('Review rollback failed:', e)
+      throw e
+    }
+  })
+
+  ipcMain.handle('review:forget', (_event, kpId: number) => {
+    try {
+      const result = forgetKnowledgePoint(kpId)
+      checkAndNotify()
+      return result
+    } catch (e) {
+      console.error('Forget knowledge point failed:', e)
       throw e
     }
   })
@@ -160,6 +202,47 @@ function setupIPC() {
 
   ipcMain.handle('plans:delete', (_event, planId: number) => {
     deleteDailyPlan(planId)
+  })
+
+  // Mistake Points
+  ipcMain.handle('mistake:add', (_event, content: string) => {
+    try {
+      return addMistakePoint(content.trim().slice(0, 5000))
+    } catch (e) {
+      console.error('Add mistake point failed:', e)
+      throw e
+    }
+  })
+
+  ipcMain.handle('mistake:list', () => {
+    return listMistakePoints()
+  })
+
+  ipcMain.handle('mistake:increment', (_event, id: number) => {
+    try {
+      incrementMistakePoint(id)
+    } catch (e) {
+      console.error('Increment mistake point failed:', e)
+      throw e
+    }
+  })
+
+  ipcMain.handle('mistake:update', (_event, id: number, content: string) => {
+    try {
+      updateMistakePoint(id, content.trim().slice(0, 5000))
+    } catch (e) {
+      console.error('Update mistake point failed:', e)
+      throw e
+    }
+  })
+
+  ipcMain.handle('mistake:delete', (_event, id: number) => {
+    try {
+      deleteMistakePoint(id)
+    } catch (e) {
+      console.error('Delete mistake point failed:', e)
+      throw e
+    }
   })
 
   // Study Sessions
@@ -224,7 +307,7 @@ function setupIPC() {
     const today = dayjs().format('YYYY-MM-DD')
     const result = await dialog.showSaveDialog(mainWindow, {
       title: '导出数据',
-      defaultPath: `忆芽-备份-${today}.json`,
+      defaultPath: `芝士学爆-备份-${today}.json`,
       filters: [{ name: 'JSON 文件', extensions: ['json'] }]
     })
     if (result.canceled || !result.filePath) return { success: false }

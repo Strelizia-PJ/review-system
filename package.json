@@ -1,7 +1,7 @@
 {
   "name": "forgetting-curve-reminder",
   "version": "1.0.0",
-  "description": "忆芽 - 科学间隔重复，让记忆生根发芽",
+  "description": "芝士学爆",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -9,21 +9,34 @@
     "package": "vite build && electron-builder --win --x64 --config.win.signAndEditExecutable=false"
   },
   "keywords": [
-    "遗忘曲线",
+    "FSRS",
+    "间隔重复",
     "复习",
-    "艾宾浩斯",
     "知识管理"
   ],
   "license": "MIT",
   "dependencies": {
+    "@radix-ui/react-checkbox": "^1.3.11",
+    "@radix-ui/react-dialog": "^1.1.23",
+    "@radix-ui/react-popover": "^1.1.23",
+    "@radix-ui/react-select": "^2.3.7",
+    "@radix-ui/react-switch": "^1.3.7",
+    "@radix-ui/react-tabs": "^1.1.21",
     "@uiw/react-md-editor": "^4.1.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "dayjs": "^1.11.21",
     "json5": "^2.2.3",
     "katex": "^0.17.0",
+    "lucide-react": "^1.31.0",
     "react": "^18.3.1",
+    "react-day-picker": "^10.0.1",
     "react-dom": "^18.3.1",
     "rehype-katex": "^7.0.1",
+    "remark-breaks": "^4.0.0",
     "remark-math": "^6.0.0",
+    "tailwind-merge": "^3.6.0",
+    "ts-fsrs": "^5.4.1",
     "zustand": "^5.0.13"
   },
   "devDependencies": {

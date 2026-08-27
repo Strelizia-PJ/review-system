@@ -1,38 +1,48 @@
 import { useEffect } from 'react'
 import { useReview } from '../../hooks/useReview'
 import ReviewItem from './ReviewItem'
+import VerificationCard from './VerificationCard'
+import { ErrorBar } from '../shared/Bars'
+import EmptyState from '../shared/EmptyState'
 
 export default function TodayPanel() {
-  const { todayItems, loading, error, fetchToday, rate } = useReview()
+  const { todayItems, loading, error, fetchToday, rate, lastRated, rollback, clearLastRated } = useReview()
 
   useEffect(() => {
     fetchToday()
   }, [])
 
-  const pendingItems = todayItems.filter(i => i.schedule_date === new Date().toISOString().slice(0, 10))
+  const today = new Date().toISOString().slice(0, 10)
+  const pendingItems = todayItems.filter(i => i.schedule_date === today)
   const allPending = todayItems
 
   return (
     <div className="space-y-3">
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-600 dark:text-red-400 mb-3">
-          {error}
-        </div>
+      {/* Post-rating verification card — lifetime handled inside (5s / pause on hover) */}
+      {lastRated && (
+        <VerificationCard
+          key={lastRated.reviewId}
+          content={lastRated.content}
+          detail={lastRated.detail}
+          onUndo={() => rollback(lastRated.reviewId)}
+          onExpire={clearLastRated}
+        />
       )}
+      {error && <ErrorBar className="mb-0">{error}</ErrorBar>}
       {loading ? (
-        <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-8">加载中...</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
       ) : allPending.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-4xl mb-3">🎉</p>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">今日没有需要复习的知识点</p>
-          <p className="text-gray-300 dark:text-gray-600 text-xs mt-1">去添加新知识吧</p>
-        </div>
+        <EmptyState
+          icon="🎉"
+          title="今日没有需要复习的知识点"
+          description="去添加新知识吧"
+        />
       ) : (
         <>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground">
             共 {allPending.length} 条待复习
             {pendingItems.length !== allPending.length && (
-              <span className="text-red-400 dark:text-red-400 ml-2">
+              <span className="ml-2 text-destructive">
                 (含 {allPending.length - pendingItems.length} 条逾期)
               </span>
             )}
@@ -41,7 +51,7 @@ export default function TodayPanel() {
             <ReviewItem
               key={item.id}
               item={item}
-              overdue={item.schedule_date < new Date().toISOString().slice(0, 10)}
+              overdue={item.schedule_date < today}
               onRate={rate}
               source="today"
             />

@@ -25,6 +25,14 @@ export interface StudySessionRow {
   created_at: string
 }
 
+export interface MistakePointRow {
+  id: number
+  content: string
+  count: number
+  created_at: string
+  updated_at: string
+}
+
 export interface AppData {
   schema_version: number
   knowledge_points: KnowledgePointRow[]
@@ -32,6 +40,7 @@ export interface AppData {
   daily_plans: DailyPlanRow[]
   daily_plan_completions: DailyPlanCompletionRow[]
   study_sessions: StudySessionRow[]
+  mistake_points: MistakePointRow[]
   settings: Record<string, string>
 }
 
@@ -42,11 +51,10 @@ export interface KnowledgePointRow {
   learn_date: string
   created_at: string
   updated_at: string
-  // SM-2 fields (added in schema v6)
-  ef: number              // Easiness factor, default 2.5, floor 1.3
-  review_count: number    // Consecutive successful recall count
-  next_review_date: string | null  // YYYY-MM-DD, null = no pending review
-  last_interval: number   // Days between this and the next review
+  // FSRS card state (serialized ts-fsrs Card, added in schema v8)
+  card_state: string | null
+  // Per-KP cap on review interval in days, null = follow the global cap (added in schema v12)
+  max_interval_days: number | null
 }
 
 export interface ReviewRecordRow {
@@ -56,16 +64,21 @@ export interface ReviewRecordRow {
   status: 'pending' | 'completed' | 'overdue'
   reviewed_at: string | null
   stage: number
-  quality: number | null  // 0-5 SM-2 recall quality, null = unrated or pre-v6
+  quality: number | null  // 1-4 FSRS recall quality, null = unrated
+  rollback_log: string | null  // serialized ts-fsrs ReviewLog, set on rating for undo support
 }
 
+/** Bump when adding a migration in migrations.ts; migrations run up to this version. */
+export const CURRENT_SCHEMA_VERSION = 13
+
 const DEFAULT_DATA: AppData = {
-  schema_version: 7,
+  schema_version: CURRENT_SCHEMA_VERSION,
   knowledge_points: [],
   review_records: [],
   daily_plans: [],
   daily_plan_completions: [],
   study_sessions: [],
+  mistake_points: [],
   settings: {}
 }
 
@@ -76,6 +89,7 @@ let nextRrId = 1
 let nextPlanId = 1
 let nextCompletionId = 1
 let nextSessionId = 1
+let nextMistakeId = 1
 
 export function getDbPath(): string {
   if (!dbPath) {
@@ -124,6 +138,12 @@ export function loadData(): AppData {
     saveData()
   }
 
+  // Normalize collections added after the strict shape validation (old data
+  // files won't have them — they must not be treated as corrupt)
+  if (!Array.isArray(data.mistake_points)) {
+    data.mistake_points = []
+  }
+
   // Initialize ID counters (filter out NaN/corrupted IDs)
   const validNum = (n: unknown): n is number => typeof n === 'number' && !isNaN(n)
   const maxId = (arr: { id: number }[]) => {
@@ -146,6 +166,10 @@ export function loadData(): AppData {
   if (data!.study_sessions) {
     const sNext = maxId(data!.study_sessions)
     if (sNext !== undefined) nextSessionId = sNext
+  }
+  if (data!.mistake_points) {
+    const mNext = maxId(data!.mistake_points)
+    if (mNext !== undefined) nextMistakeId = mNext
   }
 
   return data!
@@ -207,4 +231,8 @@ export function getNextCompletionId(): number {
 
 export function getNextSessionId(): number {
   return nextSessionId++
+}
+
+export function getNextMistakeId(): number {
+  return nextMistakeId++
 }

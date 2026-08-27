@@ -1,6 +1,7 @@
-import { getData, saveData } from './connection'
-
-const CURRENT_SCHEMA_VERSION = 7
+import { getData, saveData, CURRENT_SCHEMA_VERSION } from './connection'
+import { createEmptyCard } from 'ts-fsrs'
+import dayjs from 'dayjs'
+import { DEFAULT_MAX_REVIEW_INTERVAL_DAYS } from './queries'
 
 const migrations: Record<number, () => void> = {
   2: () => {
@@ -93,11 +94,93 @@ const migrations: Record<number, () => void> = {
         ;(plan as any).plan_date = (plan.created_at || '').substring(0, 10)
       }
     }
+  },
+  8: () => {
+    const data = getData()
+    for (const kp of data.knowledge_points) {
+      const card = createEmptyCard()
+      // Migrate SM-2 state → FSRS Card
+      const reviews = (kp as any).review_count ?? 0
+      const lastInterval = (kp as any).last_interval ?? 1
+
+      // Set review state based on existing SM-2 data
+      if (reviews > 0) {
+        // CardState values: New=0, Learning=1, Review=2, Relearning=3
+        card.state = 2 // Review
+        card.reps = reviews
+        card.stability = Math.max(lastInterval, 0.5)
+        card.last_review = kp.updated_at ? new Date(kp.updated_at) : new Date()
+      }
+      // If no reviews yet, keep as New state with default card
+
+      kp.card_state = JSON.stringify(card)
+
+      // Clean up old SM-2 fields
+      delete (kp as any).ef
+      delete (kp as any).review_count
+      delete (kp as any).next_review_date
+      delete (kp as any).last_interval
+    }
+  },
+  // 9/10/11 were originally three stacked patches doing the same cap; they share
+  // one idempotent body now. Keeping the version keys preserves upgrade paths
+  // for any data file still sitting at v8/v9/v10.
+  9: capReviewIntervals,
+  10: capReviewIntervals,
+  11: capReviewIntervals,
+  12: () => {
+    const data = getData()
+    for (const kp of data.knowledge_points) {
+      if (kp.max_interval_days === undefined) {
+        kp.max_interval_days = null
+      }
+    }
+  },
+  13: () => {
+    const data = getData()
+    if (!Array.isArray((data as any).mistake_points)) {
+      ;(data as any).mistake_points = []
+    }
   }
 }
 
-export function runMigrations(): void {
+/** Cap pending review schedules and card states at DEFAULT_MAX_REVIEW_INTERVAL_DAYS,
+ *  so the UI "下次复习" never exceeds the cap. Idempotent. */
+function capReviewIntervals(): void {
   const data = getData()
+  const today = dayjs()
+  const capDate = today.add(DEFAULT_MAX_REVIEW_INTERVAL_DAYS, 'day')
+
+  for (const record of data.review_records) {
+    if (record.status !== 'pending') continue
+    if (dayjs(record.schedule_date).diff(today, 'day') > DEFAULT_MAX_REVIEW_INTERVAL_DAYS) {
+      record.schedule_date = capDate.format('YYYY-MM-DD')
+    }
+  }
+
+  // Cap card_state.due / scheduled_days so the knowledge list & detail panel
+  // (which read from card.due) stay consistent with schedule_date
+  for (const kp of data.knowledge_points) {
+    if (!kp.card_state) continue
+    try {
+      const card = JSON.parse(kp.card_state)
+      let changed = false
+      if (card.due && dayjs(card.due).diff(today, 'day') > DEFAULT_MAX_REVIEW_INTERVAL_DAYS) {
+        card.due = capDate.toDate()
+        changed = true
+      }
+      if (card.scheduled_days && card.scheduled_days > DEFAULT_MAX_REVIEW_INTERVAL_DAYS) {
+        card.scheduled_days = DEFAULT_MAX_REVIEW_INTERVAL_DAYS
+        changed = true
+      }
+      if (changed) kp.card_state = JSON.stringify(card)
+    } catch {
+      // skip malformed card_state
+    }
+  }
+}
+
+export function runMigrations(): void {  const data = getData()
 
   if (data.schema_version >= CURRENT_SCHEMA_VERSION) return
 

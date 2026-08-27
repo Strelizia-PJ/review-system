@@ -1,17 +1,23 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
+import dayjs from 'dayjs'
+import { Search } from 'lucide-react'
 import { useKnowledge } from '../../hooks/useKnowledge'
 import KnowledgeItem from './KnowledgeItem'
+import { Input } from '../ui/Input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/Select'
+import { ErrorBar } from '../shared/Bars'
+import EmptyState from '../shared/EmptyState'
 
 type SortKey = 'learn_date' | 'review_count' | 'next_review'
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'learn_date', label: '学习日期' },
   { key: 'review_count', label: '复习次数' },
-  { key: 'next_review', label: '下次复习' },
+  { key: 'next_review', label: '下次复习' }
 ]
 
 export default function KnowledgeList() {
-  const { items, loading, error, fetchList, remove, update, search, select } = useKnowledge()
+  const { items, loading, error, fetchList, remove, update, search, select, forget, reschedule } = useKnowledge()
   const [keyword, setKeyword] = useState('')
   const [sortBy, setSortBy] = useState<SortKey>('learn_date')
   const [asc, setAsc] = useState(false)
@@ -53,43 +59,56 @@ export default function KnowledgeList() {
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
-        <input
-          type="text"
-          value={keyword}
-          onChange={e => handleSearch(e.target.value)}
-          placeholder="搜索知识点（含正文）..."
-          className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-        />
-        <select
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={keyword}
+            onChange={e => handleSearch(e.target.value)}
+            placeholder="搜索知识点（含正文）..."
+            className="pl-9"
+          />
+        </div>
+        <Select
           value={`${sortBy}-${asc ? 'asc' : 'desc'}`}
-          onChange={e => {
-            const [key, dir] = e.target.value.split('-')
+          onValueChange={v => {
+            const [key, dir] = v.split('-')
             setSortBy(key as SortKey)
             setAsc(dir === 'asc')
           }}
-          className="px-2 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
         >
-          {SORT_OPTIONS.map(opt => (
-            <option key={`${opt.key}-desc`} value={`${opt.key}-desc`}>{opt.label} ↓</option>
-          ))}
-          {SORT_OPTIONS.map(opt => (
-            <option key={`${opt.key}-asc`} value={`${opt.key}-asc`}>{opt.label} ↑</option>
-          ))}
-        </select>
+          <SelectTrigger className="w-32 shrink-0 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map(opt => (
+              <SelectItem key={`${opt.key}-desc`} value={`${opt.key}-desc`}>{opt.label} ↓</SelectItem>
+            ))}
+            {SORT_OPTIONS.map(opt => (
+              <SelectItem key={`${opt.key}-asc`} value={`${opt.key}-asc`}>{opt.label} ↑</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-600 dark:text-red-400">{error}</div>
-      )}
+      {error && <ErrorBar>{error}</ErrorBar>}
       {loading ? (
-        <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-8">加载中...</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
       ) : sortedItems.length === 0 ? (
-        <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-8">
-          {keyword ? '未找到匹配的知识点' : '暂无知识点，在右侧添加第一个吧'}
-        </p>
+        <EmptyState
+          icon="🌱"
+          title={keyword ? '未找到匹配的知识点' : '暂无知识点，在右侧添加第一个吧'}
+        />
       ) : (
         sortedItems.map(item => (
-          <KnowledgeItem key={item.id} item={item} onDelete={remove} onUpdate={update} onClick={() => select(item.id)} />
+          <KnowledgeItem
+            key={item.id}
+            item={item}
+            onDelete={remove}
+            onUpdate={update}
+            onClick={() => select(item.id)}
+            onForget={forget}
+            onReviewNow={id => reschedule(id, dayjs().format('YYYY-MM-DD'))}
+          />
         ))
       )}
     </div>

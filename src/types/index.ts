@@ -7,11 +7,10 @@ export interface KnowledgePoint {
   updated_at: string
   completed_stages: number
   total_stages: number
-  // SM-2 fields
-  ef: number
-  review_count: number
+  card_state: string | null
+  max_interval_days: number | null
+  effective_max_interval_days: number
   next_review_date: string | null
-  last_interval: number
 }
 
 export interface KnowledgePointDetail {
@@ -23,11 +22,10 @@ export interface KnowledgePointDetail {
   updated_at: string
   completed_stages: number
   total_stages: number
-  // SM-2 fields
-  ef: number
-  review_count: number
+  card_state: string | null
+  max_interval_days: number | null
+  effective_max_interval_days: number
   next_review_date: string | null
-  last_interval: number
 }
 
 export interface ReviewRecord {
@@ -39,10 +37,8 @@ export interface ReviewRecord {
   stage: number
   content: string
   quality: number | null
-  // SM-2 preview fields (from joined knowledge point)
-  ef?: number
-  review_count?: number
-  last_interval?: number
+  card_state?: string | null
+  effective_max_interval_days?: number | null
 }
 
 export interface ReviewStats {
@@ -50,10 +46,17 @@ export interface ReviewStats {
   todayPending: number
   overdue: number
   completed: number
-  mastered: number
 }
 
-export type NavPage = 'knowledge' | 'today' | 'overdue' | 'plans' | 'pomodoro' | 'study-stats' | 'import' | 'stats'
+export type NavPage = 'knowledge' | 'today' | 'mistakes' | 'manage' | 'plans' | 'pomodoro' | 'study-stats' | 'import' | 'stats' | 'settings'
+
+export interface MistakePoint {
+  id: number
+  content: string
+  count: number
+  created_at: string
+  updated_at: string
+}
 
 export interface DailyPlan {
   id: number

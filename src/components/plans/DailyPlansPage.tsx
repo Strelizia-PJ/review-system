@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useDailyPlans } from '../../hooks/useDailyPlans'
 import PlanItem from './PlanItem'
 import dayjs from 'dayjs'
+import { Input } from '../ui/Input'
+import { Button } from '../ui/Button'
+import { DatePicker } from '../ui/DatePicker'
+import { ErrorBar } from '../shared/Bars'
+import EmptyState from '../shared/EmptyState'
+import { cn } from '../../utils/cn'
+import { DAY_LABELS_MONDAY_FIRST as DAY_LABELS, WEEKDAY_ORDER } from '../../constants'
 
 type PlanType = 'one-time' | 'daily' | 'weekly' | 'interval'
-
-import { DAY_LABELS_MONDAY_FIRST as DAY_LABELS, WEEKDAY_ORDER } from '../../constants'
 
 export default function DailyPlansPage() {
   const { items, loading, error, fetchToday, add, toggle, remove } = useDailyPlans()
@@ -65,44 +71,43 @@ export default function DailyPlansPage() {
   const hasNotDue = notDueItems.length > 0
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      <p className="text-sm text-gray-400 dark:text-gray-500">
+    <div className="mx-auto max-w-2xl space-y-4">
+      <p className="text-sm text-muted-foreground">
         {dayjs(today).format('YYYY 年 M 月 D 日')}
       </p>
 
       {/* Input area */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg p-4 space-y-3 transition-colors">
+      <div className="space-y-3 rounded-lg border border-border bg-card p-4 transition-colors">
         {/* Date picker */}
         <div>
-          <label className="block text-xs text-gray-400 dark:text-gray-500 mb-1">计划日期</label>
-          <input
-            type="date"
+          <label className="mb-1 block text-xs text-muted-foreground">计划日期</label>
+          <DatePicker
             value={planDate}
-            onChange={e => setPlanDate(e.target.value)}
-            className="px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+            max={today}
+            onChange={setPlanDate}
+            className="h-8 w-44 text-sm"
           />
         </div>
 
-        <input
-          type="text"
+        <Input
           value={content}
           onChange={e => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="添加新任务..."
-          className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
         />
 
         {/* Type selector */}
-        <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+        <div className="flex gap-1 rounded-lg bg-muted p-0.5">
           {types.map(t => (
             <button
               key={t.key}
               onClick={() => setType(t.key)}
-              className={`flex-1 px-2 py-1 text-xs rounded-md transition-colors ${
+              className={cn(
+                'flex-1 rounded-md px-2 py-1 text-xs transition-colors',
                 type === t.key
-                  ? 'bg-white dark:bg-gray-600 text-gray-800 dark:text-gray-100 shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
             >
               {t.label}
             </button>
@@ -116,11 +121,12 @@ export default function DailyPlansPage() {
               <button
                 key={day}
                 onClick={() => toggleWeekday(day)}
-                className={`flex-1 px-2 py-1.5 text-xs rounded-md transition-colors font-medium ${
+                className={cn(
+                  'flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
                   weeklyDays.includes(day)
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-accent'
+                )}
               >
                 {DAY_LABELS[idx]}
               </button>
@@ -131,44 +137,36 @@ export default function DailyPlansPage() {
         {/* Interval input */}
         {type === 'interval' && (
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500 dark:text-gray-400 text-xs">每隔</span>
-            <input
+            <span className="text-xs text-muted-foreground">每隔</span>
+            <Input
               type="number"
               min={1}
               max={365}
               value={intervalDays}
               onChange={e => setIntervalDays(parseInt(e.target.value) || 1)}
-              className="w-16 px-2 py-1 border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-sm text-center text-gray-800 dark:text-gray-100"
+              className="h-8 w-16 text-center text-sm"
             />
-            <span className="text-gray-500 dark:text-gray-400 text-xs">天</span>
+            <span className="text-xs text-muted-foreground">天</span>
           </div>
         )}
 
         <div className="flex justify-end">
-          <button
+          <Button
+            size="sm"
             onClick={handleAdd}
             disabled={!content.trim() || loading || (type === 'weekly' && weeklyDays.length === 0)}
-            className="px-4 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             添加
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Task list */}
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-600 dark:text-red-400">
-          {error}
-        </div>
-      )}
+      {error && <ErrorBar>{error}</ErrorBar>}
       {loading ? (
-        <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-8">加载中...</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
       ) : items.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-4xl mb-3">📋</p>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">暂无计划</p>
-          <p className="text-gray-300 dark:text-gray-600 text-xs mt-1">添加今天的待办事项吧</p>
-        </div>
+        <EmptyState icon="📋" title="暂无计划" description="添加今天的待办事项吧" />
       ) : (
         <div className="space-y-1.5">
           {/* Today's pending items */}
@@ -181,9 +179,9 @@ export default function DailyPlansPage() {
             <>
               <button
                 onClick={() => setShowNotDue(!showNotDue)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded transition-colors"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent"
               >
-                <span className="text-[10px]">{showNotDue ? '▾' : '▸'}</span>
+                {showNotDue ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                 <span>非今日计划 ({notDueItems.length})</span>
               </button>
               {showNotDue && notDueItems.map(item => (
@@ -195,7 +193,7 @@ export default function DailyPlansPage() {
           {/* Completed section */}
           {completedItems.length > 0 && (
             <>
-              <p className="text-xs text-gray-400 dark:text-gray-500 pt-2 pb-1">
+              <p className="pb-1 pt-2 text-xs text-muted-foreground">
                 已完成 ({completedItems.length})
               </p>
               {completedItems.map(item => (

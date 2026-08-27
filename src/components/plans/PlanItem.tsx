@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import type { DailyPlan } from '../../types'
 import { Checkbox } from '../ui/Checkbox'
 import { Badge, type BadgeProps } from '../shared/Badge'
@@ -59,11 +59,21 @@ interface PlanItemProps {
 export default function PlanItem({ item, onToggle, onDelete }: PlanItemProps) {
   const notDue = item.type === 'weekly' && item.dueToday === false
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  // One-shot checkmark bloom when the task gets completed
+  const [bloom, setBloom] = useState(false)
+
+  const handleToggle = () => {
+    if (!item.completed) {
+      setBloom(true)
+      setTimeout(() => setBloom(false), 800)
+    }
+    onToggle(item.id)
+  }
 
   return (
     <div
       className={cn(
-        'flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors',
+        'relative flex items-center gap-3 rounded-lg border px-4 py-3 transition-all duration-200 hover:shadow-card',
         item.completed
           ? 'border-border bg-muted/50'
           : notDue
@@ -71,20 +81,27 @@ export default function PlanItem({ item, onToggle, onDelete }: PlanItemProps) {
             : 'border-border bg-card'
       )}
     >
-      {/* Checkbox */}
+      {/* Checkbox with completion bloom */}
       {notDue ? (
         <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border-2 border-input opacity-40" />
       ) : (
-        <Checkbox
-          checked={item.completed}
-          onCheckedChange={() => onToggle(item.id)}
-          className={cn(
-            'shrink-0 rounded-full',
-            item.completed &&
-              'border-emerald-500 bg-emerald-500 text-white data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500'
+        <span className="relative shrink-0">
+          <Checkbox
+            checked={item.completed}
+            onCheckedChange={handleToggle}
+            className={cn(
+              'rounded-full',
+              item.completed &&
+                'border-emerald-500 bg-emerald-500 text-white data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500'
+            )}
+            id={`plan-${item.id}`}
+          />
+          {bloom && (
+            <span className="pointer-events-none absolute -inset-2.5 flex items-center justify-center text-emerald-500 motion-safe:animate-bloom">
+              <Check className="h-6 w-6" strokeWidth={3} />
+            </span>
           )}
-          id={`plan-${item.id}`}
-        />
+        </span>
       )}
 
       {/* Content */}

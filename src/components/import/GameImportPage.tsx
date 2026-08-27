@@ -3,7 +3,6 @@ import { Input } from '../ui/Input'
 import { Button } from '../ui/Button'
 import { Checkbox } from '../ui/Checkbox'
 import { ErrorBar, SuccessBar } from '../shared/Bars'
-import ConfirmDialog from '../shared/ConfirmDialog'
 import { cn } from '../../utils/cn'
 
 interface ScannedDay {
@@ -21,7 +20,6 @@ export default function GameImportPage() {
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState('')
-  const [overwriteConfirm, setOverwriteConfirm] = useState(false)
 
   const api = () => window.electronAPI?.import
 
@@ -50,10 +48,12 @@ export default function GameImportPage() {
     try {
       if (!api()) return
       const data = await api()!.scan(dirPath)
-      setDays(data.days)
+      // Newest date first
+      const sorted = [...data.days].sort((a, b) => b.date.localeCompare(a.date))
+      setDays(sorted)
       setTotalMinutes(data.totalMinutes)
-      // Default: select only the last (most recent) day
-      const lastDay = data.days.length > 0 ? [data.days[data.days.length - 1].date] : []
+      // Default: select only the most recent day
+      const lastDay = sorted.length > 0 ? [sorted[0].date] : []
       setSelectedDates(new Set(lastDay))
     } catch (e: any) {
       setError(e.message || '扫描失败')
@@ -77,18 +77,17 @@ export default function GameImportPage() {
     }
   }
 
-  const handleImport = async (allDates: boolean) => {
+  const handleImport = async () => {
     setError('')
     setResult('')
     try {
       if (!api()) return
-      const dates = allDates ? days.map(d => d.date) : Array.from(selectedDates)
-      if (dates.length === 0) {
+      if (selectedDates.size === 0) {
         setError('请至少选择一个日期')
         return
       }
       setImporting(true)
-      const res = await api()!.apply(dirPath, dates)
+      const res = await api()!.apply(dirPath, Array.from(selectedDates))
       setResult(`成功导入 ${res.imported} 天的学习记录`)
     } catch (e: any) {
       setError(e.message || '导入失败')
@@ -106,7 +105,7 @@ export default function GameImportPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <div className="space-y-3 rounded-lg border border-border bg-card p-4 transition-colors">
+      <div className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-card transition-colors">
         <h3 className="text-sm font-medium text-foreground">导入 Chill with You 游戏记录</h3>
 
         <div>
@@ -138,7 +137,7 @@ export default function GameImportPage() {
 
       {days.length > 0 && (
         <>
-          <div className="space-y-2 rounded-lg border border-border bg-card p-4 transition-colors">
+          <div className="space-y-2 rounded-lg border border-border bg-card p-4 shadow-card transition-colors">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-foreground">扫描结果（{days.length} 天）</h3>
               <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
@@ -188,32 +187,12 @@ export default function GameImportPage() {
           </div>
 
           <div className="flex justify-center gap-3">
-            <Button onClick={() => handleImport(false)} disabled={selectedDates.size === 0 || importing}>
+            <Button onClick={handleImport} disabled={selectedDates.size === 0 || importing}>
               {importing ? '导入中...' : '导入选中记录'}
-            </Button>
-            <Button
-              onClick={() => setOverwriteConfirm(true)}
-              disabled={importing}
-              className="bg-emerald-600 text-white hover:bg-emerald-700"
-            >
-              全部覆盖
             </Button>
           </div>
         </>
       )}
-
-      <ConfirmDialog
-        open={overwriteConfirm}
-        onOpenChange={setOverwriteConfirm}
-        title="全部覆盖"
-        description={`将用游戏存档记录覆盖全部 ${days.length} 天的本地学习时长，此操作不可撤销。确定继续吗？`}
-        confirmText="覆盖导入"
-        variant="destructive"
-        onConfirm={() => {
-          setOverwriteConfirm(false)
-          handleImport(true)
-        }}
-      />
     </div>
   )
 }

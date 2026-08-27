@@ -68,7 +68,7 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-xl space-y-4">
       {/* Appearance */}
-      <section className="rounded-lg border border-border bg-card p-4 transition-colors">
+      <section className="rounded-lg border border-border bg-card p-4 shadow-card transition-colors">
         <h3 className="mb-3 text-sm font-medium text-foreground">外观</h3>
         <div className="flex gap-1.5">
           {themeOptions.map(({ key, label, icon: Icon }) => (
@@ -90,7 +90,7 @@ export default function SettingsPage() {
       </section>
 
       {/* General */}
-      <section className="rounded-lg border border-border bg-card p-4 transition-colors">
+      <section className="rounded-lg border border-border bg-card p-4 shadow-card transition-colors">
         <h3 className="mb-3 text-sm font-medium text-foreground">通用</h3>
         <label className="flex cursor-pointer items-center justify-between rounded-lg px-1 py-1.5">
           <div>
@@ -102,7 +102,7 @@ export default function SettingsPage() {
       </section>
 
       {/* Data */}
-      <section className="rounded-lg border border-border bg-card p-4 transition-colors">
+      <section className="rounded-lg border border-border bg-card p-4 shadow-card transition-colors">
         <h3 className="mb-3 text-sm font-medium text-foreground">数据管理</h3>
         <div className="flex gap-2">
           <Button
@@ -131,7 +131,7 @@ export default function SettingsPage() {
       </section>
 
       {/* About & update */}
-      <section className="rounded-lg border border-border bg-card p-4 transition-colors">
+      <section className="rounded-lg border border-border bg-card p-4 shadow-card transition-colors">
         <h3 className="mb-3 text-sm font-medium text-foreground">关于与更新</h3>
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm text-foreground">芝士学爆 {version || '…'}</span>

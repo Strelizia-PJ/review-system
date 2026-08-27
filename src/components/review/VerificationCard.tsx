@@ -48,7 +48,7 @@ export default function VerificationCard({ content, detail, onUndo, onExpire }: 
 
   return (
     <div
-      className="fixed bottom-4 right-2 z-40 w-[304px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-card shadow-xl"
+      className="w-[304px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-card shadow-float"
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
     >

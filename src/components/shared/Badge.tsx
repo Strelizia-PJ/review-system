@@ -20,5 +20,5 @@ const badgeVariants = cva('inline-flex items-center rounded-md px-2 py-0.5 text-
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement>, VariantProps<typeof badgeVariants> {}
 
 export function Badge({ className, variant, ...props }: BadgeProps) {
-  return <span className={cn(badgeVariants({ variant }), className)} {...props} />
+  return <span className={cn(badgeVariants({ variant }), 'motion-safe:animate-pop', className)} {...props} />
 }

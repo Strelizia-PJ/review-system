@@ -3,7 +3,7 @@ import MDEditor, { commands } from '@uiw/react-md-editor'
 import remarkMath from 'remark-math'
 import remarkBreaks from 'remark-breaks'
 import rehypeKatex from 'rehype-katex'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Loader2, Check } from 'lucide-react'
 import type { KnowledgePointDetail } from '../../types'
 import { useTheme } from '../../hooks/useTheme'
 
@@ -148,17 +148,27 @@ export default function DetailPanel({ kpId, onBack, onUpdate }: DetailPanelProps
           className="flex-1 bg-transparent text-lg font-semibold text-foreground outline-none placeholder:text-muted-foreground"
           placeholder="知识点标题"
         />
-        <span className="w-16 whitespace-nowrap text-center text-xs text-muted-foreground">
+        {/* Save status with animated feedback (spinner / settled checkmark) */}
+        <span className="flex w-20 items-center justify-end gap-1 whitespace-nowrap text-center text-xs text-muted-foreground">
           {loadError ? (
             <span className="text-destructive">加载失败</span>
           ) : kp === null ? (
-            <span>加载中...</span>
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              加载中
+            </>
           ) : saving ? (
-            <span>保存中...</span>
+            <>
+              <Loader2 className="h-3 w-3 animate-spin text-primary" />
+              保存中
+            </>
           ) : title !== kp.content || detail !== kp.detail ? (
             <span className="text-amber-500">未保存</span>
           ) : (
-            <span>已保存</span>
+            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 motion-safe:animate-pop">
+              <Check className="h-3 w-3" strokeWidth={3} />
+              已保存
+            </span>
           )}
         </span>
       </div>

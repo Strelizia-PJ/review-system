@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import dayjs from 'dayjs'
+import { motion, AnimatePresence } from 'motion/react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { Search } from 'lucide-react'
 import { useKnowledge } from '../../hooks/useKnowledge'
 import KnowledgeItem from './KnowledgeItem'
@@ -15,6 +17,9 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'review_count', label: '复习次数' },
   { key: 'next_review', label: '下次复习' }
 ]
+
+/** Card body ~96px + 24px row gap (pb-6) */
+const ESTIMATED_ROW_HEIGHT = 120
 
 export default function KnowledgeList() {
   const { items, loading, error, fetchList, remove, update, search, select, forget, reschedule } =
@@ -59,9 +64,25 @@ export default function KnowledgeList() {
     return copy
   }, [items, sortBy, asc])
 
+  // Virtualized, internally-scrolling list — only visible rows are mounted,
+  // keeping long lists jank-free on load, filter and delete
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const virtualizer = useVirtualizer({
+    count: sortedItems.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    getItemKey: index => sortedItems[index].id,
+    overscan: 6
+  })
+
+  // Jump back to top whenever the filter/sort changes
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 })
+  }, [keyword, sortBy, asc])
+
   return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
+    <div className="flex h-full flex-col gap-4">
+      <div className="flex shrink-0 gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -97,23 +118,57 @@ export default function KnowledgeList() {
         </Select>
       </div>
 
-      {error && <ErrorBar>{error}</ErrorBar>}
+      {error && <ErrorBar className="shrink-0">{error}</ErrorBar>}
       {loading ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
+        <div className="shrink-0 space-y-4">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className="skeleton motion-safe:animate-shimmer h-[96px] rounded-lg opacity-70" />
+          ))}
+        </div>
       ) : sortedItems.length === 0 ? (
-        <EmptyState icon="🌱" title={keyword ? '未找到匹配的知识点' : '暂无知识点，在右侧添加第一个吧'} />
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState icon="🌱" title={keyword ? '未找到匹配的知识点' : '暂无知识点，在右侧添加第一个吧'} />
+        </div>
       ) : (
-        sortedItems.map(item => (
-          <KnowledgeItem
-            key={item.id}
-            item={item}
-            onDelete={remove}
-            onUpdate={update}
-            onClick={() => select(item.id)}
-            onForget={forget}
-            onReviewNow={id => reschedule(id, dayjs().format('YYYY-MM-DD'))}
-          />
-        ))
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto pb-2">
+          <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
+            <AnimatePresence initial={false}>
+              {virtualizer.getVirtualItems().map(vi => {
+                const item = sortedItems[vi.index]
+                return (
+                  /* Outer div owns virtual positioning + row gap; inner motion
+                     div owns the entrance/exit animation */
+                  <div
+                    key={vi.key}
+                    data-index={vi.index}
+                    ref={virtualizer.measureElement}
+                    className="absolute left-0 top-0 w-full pb-6"
+                    style={{ transform: `translateY(${vi.start}px)` }}
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                        transition: { duration: 0.2, delay: Math.min(vi.index * 0.02, 0.12) }
+                      }}
+                      exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                    >
+                      <KnowledgeItem
+                        item={item}
+                        onDelete={remove}
+                        onUpdate={update}
+                        onClick={() => select(item.id)}
+                        onForget={forget}
+                        onReviewNow={id => reschedule(id, dayjs().format('YYYY-MM-DD'))}
+                      />
+                    </motion.div>
+                  </div>
+                )
+              })}
+            </AnimatePresence>
+          </div>
+        </div>
       )}
     </div>
   )

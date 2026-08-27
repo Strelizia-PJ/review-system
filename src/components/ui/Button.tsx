@@ -3,15 +3,16 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../../utils/cn'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg text-sm font-medium text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed',
+  'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg text-sm font-medium text-foreground transition-all duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed motion-safe:hover:-translate-y-px',
   {
     variants: {
       variant: {
-        primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        primary:
+          'bg-gradient-primary text-primary-foreground shadow-sm hover:shadow-md disabled:hover:shadow-sm',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         outline: 'border border-input bg-transparent hover:bg-accent hover:text-accent-foreground',
         ghost: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+        destructive: 'bg-destructive text-destructive-foreground shadow-sm hover:shadow-md'
       },
       size: {
         sm: 'h-8 px-3',

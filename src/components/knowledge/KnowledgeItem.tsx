@@ -82,8 +82,9 @@ export default function KnowledgeItem({
       <div
         onClick={onClick}
         className={cn(
-          'rounded-lg border border-border bg-card p-4 transition-colors',
-          onClick && 'cursor-pointer hover:border-primary/40 hover:shadow-sm'
+          'rounded-lg border border-border bg-card p-4 transition-all duration-200',
+          onClick &&
+            'cursor-pointer hover:border-primary/40 hover:shadow-card-hover motion-safe:hover:-translate-y-0.5'
         )}
       >
         <div className="flex items-start gap-2">

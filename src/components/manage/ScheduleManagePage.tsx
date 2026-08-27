@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import dayjs from 'dayjs'
+import { motion, AnimatePresence } from 'motion/react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { Search, Zap, CalendarClock, Gauge } from 'lucide-react'
 import { useKnowledge } from '../../hooks/useKnowledge'
 import { DEFAULT_MAX_REVIEW_INTERVAL_DAYS, ABSOLUTE_MAX_INTERVAL_DAYS } from '../../constants'
@@ -126,10 +128,25 @@ export default function ScheduleManagePage() {
     return 0
   })
 
+  // Virtualized list — only visible rows mount, keeping long lists smooth
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const virtualizer = useVirtualizer({
+    count: sorted.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 78,
+    getItemKey: index => sorted[index].id,
+    overscan: 6
+  })
+
+  // Jump back to top whenever the filter/sort changes
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 })
+  }, [keyword, sortBy, asc])
+
   return (
-    <div className="space-y-4">
+    <div className="flex h-full flex-col gap-4">
       {/* Global settings */}
-      <div className="rounded-lg border border-border bg-card p-4 transition-colors">
+      <div className="shrink-0 rounded-lg border border-border bg-card p-4 shadow-card transition-colors">
         <h3 className="mb-3 text-sm font-medium text-foreground">全局间隔上限</h3>
         <div className="flex flex-wrap items-center gap-3">
           <label className="text-sm text-foreground">所有知识点的复习间隔不超过</label>
@@ -154,7 +171,7 @@ export default function ScheduleManagePage() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex gap-2">
+      <div className="flex shrink-0 gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -190,77 +207,113 @@ export default function ScheduleManagePage() {
         </Select>
       </div>
 
-      {error && <ErrorBar>{error}</ErrorBar>}
+      {error && <ErrorBar className="shrink-0">{error}</ErrorBar>}
       {loading ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
-      ) : sorted.length === 0 ? (
-        <EmptyState icon="⏱️" title={keyword ? '未找到匹配的知识点' : '暂无知识点'} />
-      ) : (
-        <div className="space-y-2">
-          {sorted.map(kp => (
-            <div key={kp.id} className="rounded-lg border border-border bg-card p-3 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <p
-                    className="cursor-pointer truncate text-sm text-foreground transition-colors hover:text-primary"
-                    onClick={() => select(kp.id)}
-                    title="点击查看详情"
-                  >
-                    {kp.content}
-                  </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                    <span
-                      className={
-                        kp.next_review_date && kp.next_review_date < today
-                          ? 'font-medium text-destructive'
-                          : 'text-muted-foreground'
-                      }
-                    >
-                      下次复习: {kp.next_review_date || '无排期'}
-                    </span>
-                    <span className="text-border">|</span>
-                    <span className="text-muted-foreground">
-                      上限:{' '}
-                      {kp.max_interval_days !== null
-                        ? `${kp.max_interval_days} 天`
-                        : `全局 ${kp.effective_max_interval_days} 天`}
-                      {kp.max_interval_days !== null &&
-                        kp.max_interval_days > kp.effective_max_interval_days &&
-                        '（受全局约束）'}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  {kp.next_review_date && kp.next_review_date > today && (
-                    <button
-                      onClick={() => setReviewNowFor(kp)}
-                      className={cn(actionBtn, 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10')}
-                      title="把下次复习拉到今天，正常评分即可（不重置记忆状态）"
-                    >
-                      <Zap className="h-3.5 w-3.5" />
-                      提前复习
-                    </button>
-                  )}
-                  <button
-                    onClick={() => openDateDialog(kp)}
-                    className={cn(actionBtn, 'text-primary hover:bg-primary/10')}
-                    title="修改下次复习日期（不改记忆状态）"
-                  >
-                    <CalendarClock className="h-3.5 w-3.5" />
-                    改期
-                  </button>
-                  <button
-                    onClick={() => openCapDialog(kp)}
-                    className={cn(actionBtn, 'text-violet-600 dark:text-violet-400 hover:bg-violet-500/10')}
-                    title="设置单个知识点的间隔上限"
-                  >
-                    <Gauge className="h-3.5 w-3.5" />
-                    上限
-                  </button>
-                </div>
-              </div>
-            </div>
+        <div className="shrink-0 space-y-3">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="skeleton motion-safe:animate-shimmer h-[64px] rounded-lg opacity-70" />
           ))}
+        </div>
+      ) : sorted.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center">
+          <EmptyState icon="⏱️" title={keyword ? '未找到匹配的知识点' : '暂无知识点'} />
+        </div>
+      ) : (
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto pb-2">
+          <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
+            <AnimatePresence initial={false}>
+              {virtualizer.getVirtualItems().map(vi => {
+                const kp = sorted[vi.index]
+                return (
+                  <div
+                    key={vi.key}
+                    data-index={vi.index}
+                    ref={virtualizer.measureElement}
+                    className="absolute left-0 top-0 w-full pb-3"
+                    style={{ transform: `translateY(${vi.start}px)` }}
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                        transition: { duration: 0.2, delay: Math.min(vi.index * 0.02, 0.12) }
+                      }}
+                      exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                      className="rounded-lg border border-border bg-card p-3 transition-all duration-200 hover:border-primary/30 hover:shadow-card-hover"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className="cursor-pointer truncate text-sm text-foreground transition-colors hover:text-primary"
+                            onClick={() => select(kp.id)}
+                            title="点击查看详情"
+                          >
+                            {kp.content}
+                          </p>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                            <span
+                              className={
+                                kp.next_review_date && kp.next_review_date < today
+                                  ? 'font-medium text-destructive'
+                                  : 'text-muted-foreground'
+                              }
+                            >
+                              下次复习: {kp.next_review_date || '无排期'}
+                            </span>
+                            <span className="text-border">|</span>
+                            <span className="text-muted-foreground">
+                              上限:{' '}
+                              {kp.max_interval_days !== null
+                                ? `${kp.max_interval_days} 天`
+                                : `全局 ${kp.effective_max_interval_days} 天`}
+                              {kp.max_interval_days !== null &&
+                                kp.max_interval_days > kp.effective_max_interval_days &&
+                                '（受全局约束）'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          {kp.next_review_date && kp.next_review_date > today && (
+                            <button
+                              onClick={() => setReviewNowFor(kp)}
+                              className={cn(
+                                actionBtn,
+                                'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                              )}
+                              title="把下次复习拉到今天，正常评分即可（不重置记忆状态）"
+                            >
+                              <Zap className="h-3.5 w-3.5" />
+                              提前复习
+                            </button>
+                          )}
+                          <button
+                            onClick={() => openDateDialog(kp)}
+                            className={cn(actionBtn, 'text-primary hover:bg-primary/10')}
+                            title="修改下次复习日期（不改记忆状态）"
+                          >
+                            <CalendarClock className="h-3.5 w-3.5" />
+                            改期
+                          </button>
+                          <button
+                            onClick={() => openCapDialog(kp)}
+                            className={cn(
+                              actionBtn,
+                              'text-violet-600 dark:text-violet-400 hover:bg-violet-500/10'
+                            )}
+                            title="设置单个知识点的间隔上限"
+                          >
+                            <Gauge className="h-3.5 w-3.5" />
+                            上限
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                )
+              })}
+            </AnimatePresence>
+          </div>
         </div>
       )}
 

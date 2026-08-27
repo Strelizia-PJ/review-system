@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
+import { ChevronLeft, ChevronRight, Flame } from 'lucide-react'
 import { useStudyStats } from '../../hooks/useStudyStats'
+import { useStreak } from '../../hooks/useStreak'
+import CountUp from '../shared/CountUp'
 import dayjs from 'dayjs'
 import { Input } from '../ui/Input'
 import { Button } from '../ui/Button'
@@ -44,6 +47,7 @@ export default function StudyStatsPage() {
     nextMonth,
     addBackfill
   } = useStudyStats()
+  const streak = useStreak()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
   // Build review lookup map: date -> completedCount
@@ -103,80 +107,136 @@ export default function StudyStatsPage() {
         <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
       ) : (
         <>
+          {/* Learning streak card */}
+          <div className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 shadow-card transition-all duration-200 hover:shadow-card-hover">
+            <span
+              className={cn(
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
+                streak.activeToday && !streak.loading
+                  ? 'bg-gradient-primary text-white'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              <Flame className="h-5 w-5" />
+            </span>
+            <div className="flex flex-1 items-center gap-6">
+              <div>
+                <p className="text-2xl font-bold leading-none text-foreground">
+                  {streak.loading ? '—' : <CountUp value={streak.current} />}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">当前连续学习（天）</p>
+              </div>
+              <div className="h-9 w-px bg-border" />
+              <div>
+                <p className="text-2xl font-bold leading-none text-foreground">
+                  {streak.loading ? '—' : <CountUp value={streak.longest} />}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">最长连续（天）</p>
+              </div>
+              <span
+                className={cn(
+                  'ml-auto rounded-full px-2.5 py-1 text-xs font-medium',
+                  streak.activeToday
+                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
+                {streak.loading ? '' : streak.activeToday ? '今日已打卡 ✓' : '今日待打卡'}
+              </span>
+            </div>
+          </div>
+
           {/* Calendar heatmap */}
-          <div className="rounded-lg border border-border bg-card p-4 transition-colors">
+          <div className="rounded-lg border border-border bg-card p-4 shadow-card transition-colors">
             <h3 className="mb-3 text-sm font-medium text-foreground">学习日历</h3>
 
-            {/* Month nav */}
-            <div className="mb-4 flex items-center justify-center gap-4">
-              <button
-                onClick={prevMonth}
-                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={`${monthYear}-${monthMonth}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0, transition: { duration: 0.22 } }}
+                exit={{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
               >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm font-medium text-foreground">
-                {monthYear} 年 {monthMonth} 月
-              </span>
-              <button
-                onClick={nextMonth}
-                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Day headers */}
-            <div className="mb-1 grid grid-cols-7 gap-1">
-              {DAY_LABELS.map(label => (
-                <div key={label} className="py-1 text-center text-xs text-muted-foreground">
-                  {label}
-                </div>
-              ))}
-            </div>
-
-            {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map((day, idx) => {
-                if (!day) return <div key={`empty-${idx}`} />
-
-                const isToday = day.date === today
-                const isSelected = day.date === selectedDate
-                const level = hourLevel(day.minutes)
-
-                return (
+                {/* Month nav */}
+                <div className="mb-4 flex items-center justify-center gap-4">
                   <button
-                    key={day.date}
-                    onClick={() => setSelectedDate(isSelected ? null : day.date)}
-                    title={`${day.date}: 专注 ${formatHours(day.minutes)}${reviewMap[day.date] ? ` · 完成 ${reviewMap[day.date]} 条复习` : ''}`}
-                    className={cn(
-                      'relative flex aspect-square flex-col items-center justify-center rounded-md text-xs font-medium transition-colors hover:opacity-80',
-                      levelColors[level],
-                      isToday && 'ring-2 ring-primary',
-                      isSelected && 'ring-2 ring-muted-foreground',
-                      'text-foreground'
-                    )}
+                    onClick={prevMonth}
+                    className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   >
-                    <span>{day.dayNum}</span>
-                    {reviewMap[day.date] > 0 && (
-                      <span className="text-[8px] leading-none text-primary">●</span>
-                    )}
+                    <ChevronLeft className="h-4 w-4" />
                   </button>
-                )
-              })}
-            </div>
-
-            {/* Selected day detail */}
-            {selectedDate && (
-              <div className="mt-3 text-center text-sm text-foreground">
-                {selectedDate} — <span className="font-medium">{formatHours(selectedMinutes)}</span>
-                {(reviewMap[selectedDate] ?? 0) > 0 && (
-                  <span className="ml-2">
-                    · 完成 <span className="font-medium text-primary">{reviewMap[selectedDate]} 条</span>复习
+                  <span className="text-sm font-medium text-foreground">
+                    {monthYear} 年 {monthMonth} 月
                   </span>
+                  <button
+                    onClick={nextMonth}
+                    className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Day headers */}
+                <div className="mb-1 grid grid-cols-7 gap-1.5">
+                  {DAY_LABELS.map(label => (
+                    <div key={label} className="py-1 text-center text-xs text-muted-foreground">
+                      {label}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar grid */}
+                <div className="grid grid-cols-7 gap-1.5">
+                  {calendarDays.map((day, idx) => {
+                    if (!day) return <div key={`empty-${idx}`} />
+
+                    const isToday = day.date === today
+                    const isSelected = day.date === selectedDate
+                    const level = hourLevel(day.minutes)
+
+                    return (
+                      <motion.button
+                        key={day.date}
+                        onClick={() => setSelectedDate(isSelected ? null : day.date)}
+                        initial={{ opacity: 0, scale: 0.4 }}
+                        animate={{
+                          opacity: 1,
+                          scale: 1,
+                          transition: { delay: Math.min(idx * 0.014, 0.42), duration: 0.25 }
+                        }}
+                        whileHover={{ scale: 1.06, zIndex: 10 }}
+                        title={`${day.date}: 专注 ${formatHours(day.minutes)}${reviewMap[day.date] ? ` · 完成 ${reviewMap[day.date]} 条复习` : ''}`}
+                        className={cn(
+                          'relative flex aspect-square flex-col items-center justify-center rounded-md text-xs font-medium transition-colors',
+                          levelColors[level],
+                          isToday && 'ring-2 ring-primary',
+                          isSelected && 'ring-2 ring-muted-foreground',
+                          'text-foreground'
+                        )}
+                      >
+                        <span>{day.dayNum}</span>
+                        {reviewMap[day.date] > 0 && (
+                          <span className="text-[8px] leading-none text-primary">●</span>
+                        )}
+                      </motion.button>
+                    )
+                  })}
+                </div>
+
+                {/* Selected day detail */}
+                {selectedDate && (
+                  <div className="mt-3 text-center text-sm text-foreground">
+                    {selectedDate} — <span className="font-medium">{formatHours(selectedMinutes)}</span>
+                    {(reviewMap[selectedDate] ?? 0) > 0 && (
+                      <span className="ml-2">
+                        · 完成 <span className="font-medium text-primary">{reviewMap[selectedDate]} 条</span>
+                        复习
+                      </span>
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
+              </motion.div>
+            </AnimatePresence>
 
             {/* Legend */}
             <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
@@ -202,19 +262,23 @@ export default function StudyStatsPage() {
           </div>
 
           {/* Recent 7 days */}
-          <div className="rounded-lg border border-border bg-card p-4 transition-colors">
+          <div className="rounded-lg border border-border bg-card p-4 shadow-card transition-colors">
             <h3 className="mb-3 text-sm font-medium text-foreground">近7天</h3>
             {recent7Stats && (
               <div className="space-y-2">
-                {recent7Stats.days.map(day => (
+                {recent7Stats.days.map((day, idx) => (
                   <div key={day.date} className="flex items-center gap-3">
                     <span className="w-14 shrink-0 text-xs text-muted-foreground">
                       {dayjs(day.date).format('M/D')}
                     </span>
                     <div className="h-6 flex-1 overflow-hidden rounded bg-muted">
-                      <div
-                        className="h-full rounded bg-emerald-500 transition-all"
-                        style={{ width: `${maxBarMinutes > 0 ? (day.minutes / maxBarMinutes) * 100 : 0}%` }}
+                      <motion.div
+                        className="h-full rounded bg-gradient-to-r from-emerald-400 to-emerald-500"
+                        initial={{ width: 0 }}
+                        animate={{
+                          width: `${maxBarMinutes > 0 ? (day.minutes / maxBarMinutes) * 100 : 0}%`
+                        }}
+                        transition={{ duration: 0.55, ease: 'easeOut', delay: idx * 0.06 }}
                       />
                     </div>
                     <span className="w-14 shrink-0 text-xs text-muted-foreground">
@@ -233,7 +297,7 @@ export default function StudyStatsPage() {
           </div>
 
           {/* Backfill */}
-          <div className="rounded-lg border border-border bg-card p-4 transition-colors">
+          <div className="rounded-lg border border-border bg-card p-4 shadow-card transition-colors">
             <h3 className="mb-3 text-sm font-medium text-foreground">补登学习时长</h3>
             <div className="flex items-end gap-3">
               <div>

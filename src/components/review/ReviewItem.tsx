@@ -51,6 +51,8 @@ export default function ReviewItem({ item, overdue, onRate, source }: ReviewItem
   const [customQuality, setCustomQuality] = useState(3)
   const [customDays, setCustomDays] = useState<number | null>(3)
   const [customDate, setCustomDate] = useState('')
+  // Brief success flash around the rating row after a choice is made
+  const [flash, setFlash] = useState(false)
   const tomorrow = dayjs().add(1, 'day').format('YYYY-MM-DD')
 
   const customDateDays = customDate
@@ -76,8 +78,8 @@ export default function ReviewItem({ item, overdue, onRate, source }: ReviewItem
   return (
     <div
       className={cn(
-        'rounded-lg border p-4 transition-colors hover:shadow-sm',
-        overdue ? 'border-destructive/40 bg-destructive/5' : 'border-border bg-card'
+        'rounded-lg border p-4 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:shadow-card-hover',
+        overdue ? 'border-destructive/40 bg-destructive/5' : 'border-border bg-card hover:border-primary/30'
       )}
     >
       <div className="min-w-0 flex-1">
@@ -110,15 +112,18 @@ export default function ReviewItem({ item, overdue, onRate, source }: ReviewItem
       </div>
 
       {/* FSRS quality rating buttons */}
-      <div className="mt-3 border-t border-border pt-3">
+      <div className="relative mt-3 border-t border-border pt-3">
         <p className="mb-2 text-xs text-muted-foreground">评价:</p>
         <div className="flex gap-1.5">
           {[1, 2, 3, 4].map(q => (
             <button
               key={q}
-              onClick={() => onRate(item.id, q)}
+              onClick={() => {
+                setFlash(true)
+                onRate(item.id, q)
+              }}
               className={cn(
-                'flex-1 rounded-lg py-2 text-sm font-medium text-white transition-opacity hover:opacity-85',
+                'flex-1 rounded-lg py-2 text-sm font-medium text-white shadow-sm transition-all duration-150 hover:brightness-110 active:scale-95',
                 QUALITY_COLORS[q]
               )}
               title={`${QUALITY_LABELS[q]} · ${previewInterval(item.card_state, q, effectiveCap)}天后`}
@@ -128,13 +133,21 @@ export default function ReviewItem({ item, overdue, onRate, source }: ReviewItem
           ))}
           <button
             onClick={openCustom}
-            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-input py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-input py-2 text-sm font-medium text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-accent-foreground active:scale-95"
             title="自定义下次复习时间（评分照常更新记忆状态，仅覆盖间隔）"
           >
             <CalendarClock className="h-4 w-4" />
             自定
           </button>
         </div>
+
+        {/* Success flash — one-shot ring burst after a rating is submitted */}
+        {flash && (
+          <span
+            className="pointer-events-none absolute inset-x-0 top-0 h-full rounded-lg ring-2 ring-emerald-400/70 motion-safe:animate-ping"
+            style={{ animationDuration: '0.45s', animationIterationCount: 1 }}
+          />
+        )}
       </div>
 
       {/* Custom next-review-time dialog — mounted only while open */}

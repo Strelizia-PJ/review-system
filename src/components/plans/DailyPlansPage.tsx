@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
 import { useDailyPlans } from '../../hooks/useDailyPlans'
 import PlanItem from './PlanItem'
 import dayjs from 'dayjs'
@@ -10,6 +11,8 @@ import { ErrorBar } from '../shared/Bars'
 import EmptyState from '../shared/EmptyState'
 import { cn } from '../../utils/cn'
 import { DAY_LABELS_MONDAY_FIRST as DAY_LABELS, WEEKDAY_ORDER } from '../../constants'
+import { listItemVariants } from '../../lib/motion'
+import { celebrate } from '../../lib/celebrate'
 
 type PlanType = 'one-time' | 'daily' | 'weekly' | 'interval'
 
@@ -72,12 +75,24 @@ export default function DailyPlansPage() {
   const today = dayjs().format('YYYY-MM-DD')
   const hasNotDue = notDueItems.length > 0
 
+  // Celebrate when the last due plan of the day is checked off
+  // (skips the initial load / genuinely empty lists)
+  const prevDueCount = useRef<number | null>(null)
+  useEffect(() => {
+    if (loading) return
+    const prev = prevDueCount.current
+    prevDueCount.current = dueItems.length
+    if (prev !== null && prev > 0 && dueItems.length === 0 && items.length > 0 && completedItems.length > 0) {
+      celebrate()
+    }
+  }, [loading, dueItems.length, items.length, completedItems.length])
+
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <p className="text-sm text-muted-foreground">{dayjs(today).format('YYYY 年 M 月 D 日')}</p>
 
       {/* Input area */}
-      <div className="space-y-3 rounded-lg border border-border bg-card p-4 transition-colors">
+      <div className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-card transition-colors">
         {/* Date picker */}
         <div>
           <label className="mb-1 block text-xs text-muted-foreground">计划日期</label>
@@ -159,46 +174,80 @@ export default function DailyPlansPage() {
       {/* Task list */}
       {error && <ErrorBar>{error}</ErrorBar>}
       {loading ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
+        <div className="space-y-1.5">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="skeleton motion-safe:animate-shimmer h-[54px] rounded-lg opacity-70" />
+          ))}
+        </div>
       ) : items.length === 0 ? (
         <EmptyState icon="📋" title="暂无计划" description="添加今天的待办事项吧" />
       ) : (
         <div className="space-y-1.5">
-          {/* Today's pending items */}
-          {dueItems.map(item => (
-            <PlanItem key={item.id} item={item} onToggle={toggle} onDelete={remove} />
-          ))}
-
-          {/* Non-today collapsible section */}
-          {hasNotDue && (
-            <>
-              <button
-                onClick={() => setShowNotDue(!showNotDue)}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent"
-              >
-                {showNotDue ? (
-                  <ChevronDown className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronRight className="h-3.5 w-3.5" />
-                )}
-                <span>非今日计划 ({notDueItems.length})</span>
-              </button>
-              {showNotDue &&
-                notDueItems.map(item => (
-                  <PlanItem key={item.id} item={item} onToggle={toggle} onDelete={remove} />
-                ))}
-            </>
-          )}
-
-          {/* Completed section */}
-          {completedItems.length > 0 && (
-            <>
-              <p className="pb-1 pt-2 text-xs text-muted-foreground">已完成 ({completedItems.length})</p>
-              {completedItems.map(item => (
-                <PlanItem key={item.id} item={item} onToggle={toggle} onDelete={remove} />
-              ))}
-            </>
-          )}
+          {/* Flattened keyed children so AnimatePresence tracks every row */}
+          <AnimatePresence mode="popLayout" initial={false}>
+            {[
+              ...dueItems.map((item, i) => (
+                <motion.div
+                  key={`due-${item.id}`}
+                  layout
+                  variants={listItemVariants}
+                  custom={i}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                >
+                  <PlanItem item={item} onToggle={toggle} onDelete={remove} />
+                </motion.div>
+              )),
+              hasNotDue ? (
+                <button
+                  key="not-due-toggle"
+                  onClick={() => setShowNotDue(!showNotDue)}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent"
+                >
+                  {showNotDue ? (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  )}
+                  <span>非今日计划 ({notDueItems.length})</span>
+                </button>
+              ) : null,
+              ...(showNotDue
+                ? notDueItems.map((item, i) => (
+                    <motion.div
+                      key={`nd-${item.id}`}
+                      layout
+                      variants={listItemVariants}
+                      custom={i}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                    >
+                      <PlanItem item={item} onToggle={toggle} onDelete={remove} />
+                    </motion.div>
+                  ))
+                : []),
+              completedItems.length > 0 ? (
+                <p key="completed-label" className="pb-1 pt-2 text-xs text-muted-foreground">
+                  已完成 ({completedItems.length})
+                </p>
+              ) : null,
+              ...completedItems.map((item, i) => (
+                <motion.div
+                  key={`done-${item.id}`}
+                  layout
+                  variants={listItemVariants}
+                  custom={Math.min(i, 8)}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                >
+                  <PlanItem item={item} onToggle={toggle} onDelete={remove} />
+                </motion.div>
+              ))
+            ]}
+          </AnimatePresence>
         </div>
       )}
     </div>

@@ -3,6 +3,7 @@ import MDEditor from '@uiw/react-md-editor'
 import remarkMath from 'remark-math'
 import remarkBreaks from 'remark-breaks'
 import rehypeKatex from 'rehype-katex'
+import { motion, AnimatePresence } from 'motion/react'
 import { Plus, Pencil, X } from 'lucide-react'
 import { useMistakes } from '../../hooks/useMistakes'
 import { useTheme } from '../../hooks/useTheme'
@@ -20,6 +21,7 @@ import {
   DialogFooter
 } from '../ui/Dialog'
 import { cn } from '../../utils/cn'
+import { listItemVariants } from '../../lib/motion'
 
 const iconBtn =
   'rounded-md p-1.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-accent-foreground'
@@ -103,60 +105,72 @@ export default function MistakesPage() {
 
       {error && <ErrorBar>{error}</ErrorBar>}
       {loading ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
+        <div className="space-y-2">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="skeleton motion-safe:animate-shimmer h-[56px] rounded-lg opacity-70" />
+          ))}
+        </div>
       ) : items.length === 0 ? (
         <EmptyState icon="🎯" title="暂无易错点" description="遇到容易出错的知识点，记在这里反复提醒自己" />
       ) : (
         <div className="space-y-2">
-          {items.map((item, idx) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-colors"
-            >
-              <span className="w-6 shrink-0 text-center text-xs text-muted-foreground/60">{idx + 1}</span>
-
-              <div className="min-w-0 flex-1 break-words">
-                <MDEditor.Markdown
-                  source={item.content}
-                  remarkPlugins={[remarkMath, remarkBreaks]}
-                  rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
-                />
-              </div>
-
-              {/* Count badge */}
-              <span
-                className={cn(
-                  'inline-flex h-7 min-w-9 shrink-0 items-center justify-center rounded-full px-2 text-sm font-bold',
-                  item.count >= 5
-                    ? 'bg-destructive/15 text-destructive'
-                    : item.count >= 3
-                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                      : 'bg-muted text-muted-foreground'
-                )}
-                title={`已错 ${item.count} 次`}
+          <AnimatePresence mode="popLayout" initial={false}>
+            {items.map((item, idx) => (
+              <motion.div
+                key={item.id}
+                layout
+                variants={listItemVariants}
+                custom={idx}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-all duration-200 hover:border-primary/30 hover:shadow-card-hover"
               >
-                {item.count}
-              </span>
+                <span className="w-6 shrink-0 text-center text-xs text-muted-foreground/60">{idx + 1}</span>
 
-              {/* +1 */}
-              <Button size="sm" onClick={() => increment(item.id)} title="又错了一次，计数 +1">
-                +1
-              </Button>
+                <div className="min-w-0 flex-1 break-words">
+                  <MDEditor.Markdown
+                    source={item.content}
+                    remarkPlugins={[remarkMath, remarkBreaks]}
+                    rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
+                  />
+                </div>
 
-              <div className="flex shrink-0 items-center">
-                <button onClick={() => openEdit(item.id, item.content)} className={iconBtn} title="编辑">
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setDeleteTarget({ id: item.id, content: item.content })}
-                  className={cn(iconBtn, 'hover:text-destructive')}
-                  title="删除"
+                {/* Count badge */}
+                <span
+                  className={cn(
+                    'inline-flex h-7 min-w-9 shrink-0 items-center justify-center rounded-full px-2 text-sm font-bold',
+                    item.count >= 5
+                      ? 'bg-destructive/15 text-destructive'
+                      : item.count >= 3
+                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                        : 'bg-muted text-muted-foreground'
+                  )}
+                  title={`已错 ${item.count} 次`}
                 >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))}
+                  {item.count}
+                </span>
+
+                {/* +1 */}
+                <Button size="sm" onClick={() => increment(item.id)} title="又错了一次，计数 +1">
+                  +1
+                </Button>
+
+                <div className="flex shrink-0 items-center">
+                  <button onClick={() => openEdit(item.id, item.content)} className={iconBtn} title="编辑">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget({ id: item.id, content: item.content })}
+                    className={cn(iconBtn, 'hover:text-destructive')}
+                    title="删除"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 

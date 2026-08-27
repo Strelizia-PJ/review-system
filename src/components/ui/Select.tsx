@@ -35,7 +35,7 @@ const SelectContent = forwardRef<
       ref={ref}
       position={position}
       className={cn(
-        'z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-card text-foreground shadow-lg',
+        'z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-card text-foreground shadow-lg data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
         className
       )}
       {...props}

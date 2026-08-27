@@ -15,7 +15,7 @@ const Checkbox = forwardRef<
     )}
     {...props}
   >
-    <CheckboxPrimitives.Indicator className="flex items-center justify-center text-current">
+    <CheckboxPrimitives.Indicator className="flex items-center justify-center text-current data-[state=checked]:animate-pop">
       <Check className="h-3 w-3" strokeWidth={3} />
     </CheckboxPrimitives.Indicator>
   </CheckboxPrimitives.Root>

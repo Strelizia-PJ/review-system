@@ -6,6 +6,8 @@ publish:
   provider: github
   owner: Strelizia-PJ
   repo: review-system
+  draft: false
+  prerelease: true
 files:
   - dist
   - dist-electron

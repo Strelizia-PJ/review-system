@@ -1,6 +1,6 @@
 {
   "name": "forgetting-curve-reminder",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.1",
   "description": "芝士学爆",
   "main": "dist-electron/main.js",
   "scripts": {

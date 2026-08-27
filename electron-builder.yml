@@ -6,8 +6,8 @@ publish:
   provider: github
   owner: Strelizia-PJ
   repo: review-system
-  draft: false
-  prerelease: true
+  # 非 draft 的 prerelease（releaseType: draft=草稿 / prerelease=直接发布+预发布标记 / release=正式版）
+  releaseType: prerelease
 files:
   - dist
   - dist-electron

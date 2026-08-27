@@ -11,9 +11,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -22,6 +22,7 @@ jobs:
         run: npm ci
         env:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          HUSKY: '0'
 
       - name: Build & publish Windows installer
         run: npx vite build && npx electron-builder --win --x64 --publish always
@@ -35,9 +36,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -46,6 +47,7 @@ jobs:
         run: npm ci
         env:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          HUSKY: '0'
 
       - name: Build & publish macOS DMG (ad-hoc signed)
         run: npx vite build && npx electron-builder --mac --x64 --arm64 --publish always

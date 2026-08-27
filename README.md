@@ -11,12 +11,14 @@
 ## 功能特性
 
 ### 📚 知识库
+
 - 所见即所得的 Markdown 编辑器（@uiw/react-md-editor），原生支持 Ctrl+Z/Y 撤销重做
 - KaTeX 数学公式渲染：行内 `$...$` 与块级 `$$...$$`
 - 本地图片插入，通过自定义 `kcimg://` 协议加载（含路径穿越防护与孤儿图片自动清理）
 - 知识点搜索（含正文）、多维度排序、学习日期回溯
 
 ### 🔁 FSRS 复习调度
+
 - 基于 [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs)（Free Spaced Repetition Scheduler）建模记忆状态（Stability / Difficulty）
 - 四档评分：**忘 / 难 / 过 / 易**，算法自动计算下次复习时机
 - 评分时可**自定义下次复习时间**（明天/3天/7天/14天或任意日期）：记忆状态照常按评分更新，仅覆盖间隔，支持撤销
@@ -28,26 +30,32 @@
 - 每小时定时检查复习任务，通过 Windows 原生通知提醒
 
 ### 🎯 易错点
+
 - 记录容易出错的知识点，每次出错点 **+1** 计数
 - 错误次数越多排序越靠前，高频易错点一目了然
 - 计数徽章按严重度变色（≥3 橙色、≥5 红色）
 - 内容支持 **Markdown 与 LaTeX 公式**（与知识点详情同一套编辑/渲染管线）
 
 ### 🍅 番茄钟
+
 - 以时间戳差值计时，规避浏览器后台节流导致的计时漂移
 - 学习时长自动记录，汇入学习统计
 
 ### 📋 每日计划
+
 - 一次性任务与每日重复任务，完成状态一键切换
 
 ### 📈 学习统计
+
 - 纯 CSS 手写日历热力图：每日学习时长按 7 档色阶呈现，hover 查看当日明细
 - 周 / 近 7 日 / 月度多维视图，支持历史补登
 
 ### 🎮 游戏数据导入
+
 - 解析《Chill with You》游戏存档（.es3），把游戏内学习时长导入统计
 
 ### 🖥️ 桌面集成
+
 - 系统托盘常驻、最小化到托盘、可选开机自启
 - light / dark / system 三态主题，跨重启保持
 - 设置页统一管理外观、开机自启与数据导入导出（JSON 备份）
@@ -64,22 +72,27 @@
 
 ## 技术栈
 
-| 层 | 技术 |
-| --- | --- |
-| 桌面框架 | Electron 42 |
-| 前端 | React 18 + TypeScript |
-| 构建 | Vite 8 + vite-plugin-electron |
-| 样式 | Tailwind CSS 3（darkMode: class） |
-| 状态管理 | Zustand 5（按业务域拆分 6 个 store） |
-| 记忆算法 | ts-fsrs 5 |
+| 层       | 技术                                              |
+| -------- | ------------------------------------------------- |
+| 桌面框架 | Electron 42                                       |
+| 前端     | React 18 + TypeScript                             |
+| 构建     | Vite 8 + vite-plugin-electron                     |
+| 样式     | Tailwind CSS 3（darkMode: class）                 |
+| 状态管理 | Zustand 5（按业务域拆分 6 个 store）              |
+| 记忆算法 | ts-fsrs 5                                         |
 | Markdown | @uiw/react-md-editor + remark-math + rehype-katex |
-| 打包 | electron-builder（NSIS） |
+| 打包     | electron-builder（NSIS）                          |
 
 ## 快速开始
 
 ### 方式一：安装包（推荐）
 
-下载对应版本的安装包（`芝士学爆-Setup-<版本号>.exe`，见仓库 Release 或 `release/` 目录构建产物），双击安装即可。数据保存在本地，卸载不影响已导出的备份。
+从 [GitHub Releases](https://github.com/Strelizia-PJ/review-system/releases) 下载对应平台安装包：
+
+- **Windows**：`芝士学爆-Setup-<版本号>.exe`，双击安装；支持应用内自动更新
+- **macOS**：`芝士学爆-<版本号>-<arch>.dmg`（Intel 选 x64、Apple Silicon 选 arm64）；未签名，首次打开需**右键 → 打开**，新版本请到 Releases 页手动下载
+
+数据保存在本地，卸载不影响已导出的备份。
 
 ### 方式二：源码运行
 

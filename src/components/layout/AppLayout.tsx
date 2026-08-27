@@ -35,7 +35,10 @@ export default function AppLayout() {
       <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
         <Sidebar
           currentPage={currentPage}
-          onNavigate={(page) => { setCurrentPage(page); deselect() }}
+          onNavigate={page => {
+            setCurrentPage(page)
+            deselect()
+          }}
           onBack={() => {
             if (reviewSource) setCurrentPage(reviewSource)
             deselect()
@@ -100,23 +103,15 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen bg-background transition-colors">
-      <Sidebar
-        currentPage={currentPage}
-        onNavigate={setCurrentPage}
-        stats={stats}
-      />
+      <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} stats={stats} />
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="shrink-0 border-b border-border bg-card px-6 py-4 transition-colors">
-          <h2 className="text-lg font-semibold text-foreground">
-            {pageTitles[currentPage]}
-          </h2>
+          <h2 className="text-lg font-semibold text-foreground">{pageTitles[currentPage]}</h2>
         </header>
 
         <div className="flex-1 flex overflow-hidden">
-          <main className="flex-1 overflow-y-auto p-6">
-            {renderContent()}
-          </main>
+          <main className="flex-1 overflow-y-auto p-6">{renderContent()}</main>
 
           {/* Add-knowledge aside — only on review/knowledge related pages */}
           {['knowledge', 'today', 'manage'].includes(currentPage) && (
@@ -129,7 +124,8 @@ export default function AppLayout() {
                 }}
               />
               <div className="mt-4 rounded-lg bg-primary/10 p-3 text-xs leading-relaxed text-primary transition-colors">
-                提示：添加知识点后，系统使用 FSRS 算法动态安排复习。每次复习时根据回忆质量(1-4)自动调整下一次复习间隔，科学提升记忆效率。
+                提示：添加知识点后，系统使用 FSRS
+                算法动态安排复习。每次复习时根据回忆质量(1-4)自动调整下一次复习间隔，科学提升记忆效率。
               </div>
             </aside>
           )}

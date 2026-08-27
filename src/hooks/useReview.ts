@@ -71,12 +71,10 @@ export const useReview = create<ReviewState>((set, get) => ({
           // detail unavailable — card falls back to title-only
         }
       }
-      const [todayItems, stats] = await Promise.all([
-        api()!.getToday(),
-        api()!.getStats()
-      ])
+      const [todayItems, stats] = await Promise.all([api()!.getToday(), api()!.getStats()])
       set({
-        todayItems, stats,
+        todayItems,
+        stats,
         lastRated: item ? { reviewId, kpId: item.knowledge_point_id, content: item.content, detail } : null
       })
     } catch (e) {
@@ -90,10 +88,7 @@ export const useReview = create<ReviewState>((set, get) => ({
     try {
       await api()!.rollback(reviewId)
       set({ lastRated: null })
-      const [todayItems, stats] = await Promise.all([
-        api()!.getToday(),
-        api()!.getStats()
-      ])
+      const [todayItems, stats] = await Promise.all([api()!.getToday(), api()!.getStats()])
       set({ todayItems, stats })
     } catch (e) {
       console.error('Failed to rollback review:', e)

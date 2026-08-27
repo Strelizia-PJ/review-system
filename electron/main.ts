@@ -1,7 +1,8 @@
-import { app, BrowserWindow, ipcMain, Menu, protocol, net, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, protocol, net, dialog, shell } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import dayjs from 'dayjs'
+import { autoUpdater } from 'electron-updater'
 import { loadData } from './database/connection'
 import { runMigrations } from './database/migrations'
 import {
@@ -74,7 +75,7 @@ function createWindow() {
   }
 
   // Minimize to tray instead of closing
-  mainWindow.on('close', (event) => {
+  mainWindow.on('close', event => {
     if (!isQuitting) {
       event.preventDefault()
       mainWindow?.hide()
@@ -188,9 +189,12 @@ function setupIPC() {
   })
 
   // Daily Plans
-  ipcMain.handle('plans:add', (_event, content: string, type: string, config?: Record<string, unknown>, planDate?: string) => {
-    return addDailyPlan(content, type, config, planDate)
-  })
+  ipcMain.handle(
+    'plans:add',
+    (_event, content: string, type: string, config?: Record<string, unknown>, planDate?: string) => {
+      return addDailyPlan(content, type, config, planDate)
+    }
+  )
 
   ipcMain.handle('plans:get-today', () => {
     return getTodayPlans()
@@ -355,12 +359,74 @@ function setupIPC() {
       fs.copyFileSync(dbPath, bakPath)
       // Write imported data
       fs.writeFileSync(dbPath, JSON.stringify(parsed, null, 2), 'utf-8')
-      return { success: true, imported: { kp: parsed.knowledge_points.length, rr: parsed.review_records.length } }
+      return {
+        success: true,
+        imported: { kp: parsed.knowledge_points.length, rr: parsed.review_records.length }
+      }
     } catch (e) {
       console.error('Import failed:', e)
       return { success: false, error: '读取或写入数据失败' }
     }
   })
+}
+
+// ---- Auto Update (electron-updater, GitHub Releases) ----
+// Windows only: unsigned macOS builds cannot auto-update (Gatekeeper).
+const RELEASES_URL = 'https://github.com/Strelizia-PJ/review-system/releases/latest'
+
+type UpdateStatus =
+  | { event: 'checking' }
+  | { event: 'available'; version: string }
+  | { event: 'not-available'; version: string }
+  | { event: 'downloading'; percent: number }
+  | { event: 'downloaded'; version: string }
+  | { event: 'error'; message: string }
+
+function sendUpdateStatus(status: UpdateStatus) {
+  mainWindow?.webContents.send('update:status', status)
+}
+
+function setupAutoUpdate() {
+  if (!app.isPackaged || process.platform !== 'win32') {
+    // Renderer still needs the version/platform IPC below
+  } else {
+    autoUpdater.autoDownload = true
+    autoUpdater.on('checking-for-update', () => sendUpdateStatus({ event: 'checking' }))
+    autoUpdater.on('update-available', info =>
+      sendUpdateStatus({ event: 'available', version: info.version })
+    )
+    autoUpdater.on('update-not-available', info =>
+      sendUpdateStatus({ event: 'not-available', version: info.version })
+    )
+    autoUpdater.on('download-progress', progress =>
+      sendUpdateStatus({ event: 'downloading', percent: Math.round(progress.percent) })
+    )
+    autoUpdater.on('update-downloaded', info =>
+      sendUpdateStatus({ event: 'downloaded', version: info.version })
+    )
+    autoUpdater.on('error', err => sendUpdateStatus({ event: 'error', message: err?.message || String(err) }))
+    // Silent check 30s after launch; renderer can trigger manual checks too
+    setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 30_000)
+  }
+
+  ipcMain.handle('update:get-version', () => app.getVersion())
+  ipcMain.handle('update:get-platform', () => process.platform)
+  ipcMain.handle('update:check', () => {
+    if (!app.isPackaged || process.platform !== 'win32') {
+      sendUpdateStatus({ event: 'not-available', version: app.getVersion() })
+      return
+    }
+    autoUpdater.checkForUpdates().catch(err => {
+      sendUpdateStatus({ event: 'error', message: err?.message || String(err) })
+    })
+  })
+  ipcMain.handle('update:install', () => {
+    if (app.isPackaged && process.platform === 'win32') {
+      isQuitting = true
+      autoUpdater.quitAndInstall()
+    }
+  })
+  ipcMain.handle('update:open-release', () => shell.openExternal(RELEASES_URL))
 }
 
 // ---- App Lifecycle ----
@@ -370,74 +436,77 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'kcimg', privileges: { bypassCSP: true, supportFetchAPI: true } }
 ])
 
-app.whenReady().then(() => {
-  Menu.setApplicationMenu(null)
+app
+  .whenReady()
+  .then(() => {
+    Menu.setApplicationMenu(null)
 
-  // Handle kcimg:// protocol — serves local image files
-  // URL format: kcimg://kpId/filename
-  protocol.handle('kcimg', (request) => {
-    const rawUrl = request.url.replace('kcimg://', '')
-    const userDataPath = app.getPath('userData')
-    const imagesDir = path.join(userDataPath, 'images')
+    // Handle kcimg:// protocol — serves local image files
+    // URL format: kcimg://kpId/filename
+    protocol.handle('kcimg', request => {
+      const rawUrl = request.url.replace('kcimg://', '')
+      const userDataPath = app.getPath('userData')
+      const imagesDir = path.join(userDataPath, 'images')
 
-    // Validate path to prevent directory traversal
-    const decoded = decodeURIComponent(rawUrl)
-    const normalized = path.normalize(decoded)
-    if (normalized.startsWith('..') || path.isAbsolute(normalized)) {
-      return new Response('Invalid path', { status: 403 })
+      // Validate path to prevent directory traversal
+      const decoded = decodeURIComponent(rawUrl)
+      const normalized = path.normalize(decoded)
+      if (normalized.startsWith('..') || path.isAbsolute(normalized)) {
+        return new Response('Invalid path', { status: 403 })
+      }
+
+      // Parse kpId/name segments
+      const segments = normalized.split(path.sep).filter(Boolean)
+      if (segments.length < 2) {
+        return new Response('Invalid path', { status: 400 })
+      }
+      const kpId = parseInt(segments[0], 10)
+      if (isNaN(kpId) || kpId <= 0) {
+        return new Response('Invalid knowledge point ID', { status: 400 })
+      }
+
+      const filePath = path.join(imagesDir, normalized)
+      // Final check: resolved path must be within imagesDir
+      if (!filePath.startsWith(imagesDir + path.sep)) {
+        return new Response('Path traversal denied', { status: 403 })
+      }
+
+      return net.fetch(`file://${filePath}`)
+    })
+
+    loadData()
+    runMigrations()
+
+    setupIPC()
+    setupAutoUpdate()
+    createWindow()
+    setMainWindowGetter(() => mainWindow)
+    createTray(mainWindow!)
+    startScheduler()
+    // Only enable auto-start if user hasn't explicitly disabled it
+    if (getData().settings['auto_start'] !== 'false') {
+      enableAutoStart()
     }
 
-    // Parse kpId/name segments
-    const segments = normalized.split(path.sep).filter(Boolean)
-    if (segments.length < 2) {
-      return new Response('Invalid path', { status: 400 })
-    }
-    const kpId = parseInt(segments[0], 10)
-    if (isNaN(kpId) || kpId <= 0) {
-      return new Response('Invalid knowledge point ID', { status: 400 })
+    // Auto-start: start minimized to tray
+    if (process.argv.includes('--hidden')) {
+      mainWindow?.hide()
     }
 
-    const filePath = path.join(imagesDir, normalized)
-    // Final check: resolved path must be within imagesDir
-    if (!filePath.startsWith(imagesDir + path.sep)) {
-      return new Response('Path traversal denied', { status: 403 })
-    }
-
-    return net.fetch(`file://${filePath}`)
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow()
+      } else {
+        mainWindow?.show()
+      }
+    })
   })
-
-  loadData()
-  runMigrations()
-
-  setupIPC()
-  createWindow()
-  setMainWindowGetter(() => mainWindow)
-  createTray(mainWindow!)
-  startScheduler()
-  // Only enable auto-start if user hasn't explicitly disabled it
-  if (getData().settings['auto_start'] !== 'false') {
-    enableAutoStart()
-  }
-
-  // Auto-start: start minimized to tray
-  if (process.argv.includes('--hidden')) {
-    mainWindow?.hide()
-  }
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
-    } else {
-      mainWindow?.show()
-    }
+  .catch(err => {
+    console.error('Failed to start application:', err)
+    // Show error dialog before quitting
+    dialog.showErrorBox('启动失败', `应用启动发生错误: ${err?.message || String(err)}`)
+    app.quit()
   })
-}).catch((err) => {
-  console.error('Failed to start application:', err)
-  // Show error dialog before quitting
-  const { dialog } = require('electron')
-  dialog.showErrorBox('启动失败', `应用启动发生错误: ${err?.message || String(err)}`)
-  app.quit()
-})
 
 app.on('before-quit', () => {
   isQuitting = true

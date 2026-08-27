@@ -12,11 +12,17 @@ import { ErrorBar } from '../shared/Bars'
 import EmptyState from '../shared/EmptyState'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
 } from '../ui/Dialog'
 import { cn } from '../../utils/cn'
 
-const iconBtn = 'rounded-md p-1.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-accent-foreground'
+const iconBtn =
+  'rounded-md p-1.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-accent-foreground'
 
 export default function MistakesPage() {
   const { items, loading, error, fetchList, add, increment, update, remove } = useMistakes()
@@ -28,7 +34,9 @@ export default function MistakesPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; content: string } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { fetchList() }, [])
+  useEffect(() => {
+    fetchList()
+  }, [])
 
   const handleAdd = async () => {
     const trimmed = content.trim()
@@ -62,7 +70,11 @@ export default function MistakesPage() {
     }
   }
 
-  const plainText = (md: string) => md.replace(/[#*`_$\\>\-\[\]]/g, '').replace(/\s+/g, ' ').trim()
+  const plainText = (md: string) =>
+    md
+      .replace(/[#*`_$\\>\-[\]]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
   const truncated = (s: string) => {
     const t = plainText(s)
     return t.length > 30 ? t.slice(0, 30) + '...' : t
@@ -127,20 +139,12 @@ export default function MistakesPage() {
               </span>
 
               {/* +1 */}
-              <Button
-                size="sm"
-                onClick={() => increment(item.id)}
-                title="又错了一次，计数 +1"
-              >
+              <Button size="sm" onClick={() => increment(item.id)} title="又错了一次，计数 +1">
                 +1
               </Button>
 
               <div className="flex shrink-0 items-center">
-                <button
-                  onClick={() => openEdit(item.id, item.content)}
-                  className={iconBtn}
-                  title="编辑"
-                >
+                <button onClick={() => openEdit(item.id, item.content)} className={iconBtn} title="编辑">
                   <Pencil className="h-4 w-4" />
                 </button>
                 <button
@@ -158,7 +162,12 @@ export default function MistakesPage() {
 
       {/* Edit dialog with markdown editor */}
       {editTarget && (
-        <Dialog open onOpenChange={o => { if (!o) setEditTarget(null) }}>
+        <Dialog
+          open
+          onOpenChange={o => {
+            if (!o) setEditTarget(null)
+          }}
+        >
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>编辑易错点</DialogTitle>
@@ -173,13 +182,17 @@ export default function MistakesPage() {
                 preview="live"
                 previewOptions={{
                   remarkPlugins: [remarkMath, remarkBreaks],
-                  rehypePlugins: [[rehypeKatex, { throwOnError: false }]],
+                  rehypePlugins: [[rehypeKatex, { throwOnError: false }]]
                 }}
               />
             </div>
             <DialogFooter>
-              <Button variant="outline" size="sm" onClick={() => setEditTarget(null)}>取消</Button>
-              <Button size="sm" disabled={!editContent.trim()} onClick={saveEdit}>保存</Button>
+              <Button variant="outline" size="sm" onClick={() => setEditTarget(null)}>
+                取消
+              </Button>
+              <Button size="sm" disabled={!editContent.trim()} onClick={saveEdit}>
+                保存
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -187,12 +200,17 @@ export default function MistakesPage() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        onOpenChange={o => { if (!o) setDeleteTarget(null) }}
+        onOpenChange={o => {
+          if (!o) setDeleteTarget(null)
+        }}
         title="确认删除"
         description={`确定删除易错点「${deleteTarget ? truncated(deleteTarget.content) : ''}」吗？此操作不可撤销。`}
         confirmText="确认删除"
         variant="destructive"
-        onConfirm={() => { if (deleteTarget) remove(deleteTarget.id); setDeleteTarget(null) }}
+        onConfirm={() => {
+          if (deleteTarget) remove(deleteTarget.id)
+          setDeleteTarget(null)
+        }}
       />
     </div>
   )

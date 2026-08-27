@@ -1,6 +1,15 @@
 import {
-  BookOpen, CalendarCheck, AlertCircle, Timer, ClipboardList,
-  Citrus, BarChart3, Download, Sparkles, Settings, ArrowLeft
+  BookOpen,
+  CalendarCheck,
+  AlertCircle,
+  Timer,
+  ClipboardList,
+  Citrus,
+  BarChart3,
+  Download,
+  Sparkles,
+  Settings,
+  ArrowLeft
 } from 'lucide-react'
 import { cn } from '../../utils/cn'
 import { Badge } from '../shared/Badge'
@@ -59,7 +68,9 @@ export default function Sidebar({ currentPage, onNavigate, stats, inDetail, onBa
               <Icon className="h-4 w-4 shrink-0" />
               <span>{label}</span>
               {key === 'today' && stats.todayPending > 0 && (
-                <Badge variant="default" className="ml-auto">{stats.todayPending}</Badge>
+                <Badge variant="default" className="ml-auto">
+                  {stats.todayPending}
+                </Badge>
               )}
             </button>
           ))

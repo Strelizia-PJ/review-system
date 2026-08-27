@@ -75,7 +75,9 @@ export default function VerificationCard({ content, detail, onUndo, onExpire }: 
             rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
           />
         ) : (
-          <p className="py-2 text-center text-xs text-muted-foreground">（该知识点没有详情内容，仅凭标题核对）</p>
+          <p className="py-2 text-center text-xs text-muted-foreground">
+            （该知识点没有详情内容，仅凭标题核对）
+          </p>
         )}
       </div>
 

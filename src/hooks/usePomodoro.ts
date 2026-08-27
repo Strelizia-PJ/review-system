@@ -80,7 +80,7 @@ export const usePomodoro = create<PomodoroState>((set, get) => ({
   resume: () => {
     const state = get()
     const totalSeconds = state.phase === 'focus' ? state.focusDuration * 60 : state.breakDuration * 60
-    const elapsedMs = Math.max(0, (totalSeconds - state.remainingSeconds)) * 1000
+    const elapsedMs = Math.max(0, totalSeconds - state.remainingSeconds) * 1000
     set({
       status: 'running',
       startTimestamp: Date.now() - elapsedMs
@@ -115,7 +115,14 @@ export const usePomodoro = create<PomodoroState>((set, get) => ({
       })
     } else if (phase === 'break') {
       if (currentCycle >= totalCycles) {
-        set({ phase: 'idle', status: 'stopped', currentCycle: 1, remainingSeconds: focusDuration * 60, elapsedFocusSeconds: 0, startTimestamp: 0 })
+        set({
+          phase: 'idle',
+          status: 'stopped',
+          currentCycle: 1,
+          remainingSeconds: focusDuration * 60,
+          elapsedFocusSeconds: 0,
+          startTimestamp: 0
+        })
       } else {
         set({
           phase: 'focus',
@@ -135,7 +142,8 @@ export const usePomodoro = create<PomodoroState>((set, get) => ({
     const totalSeconds = state.phase === 'focus' ? state.focusDuration * 60 : state.breakDuration * 60
     const elapsed = Math.max(0, Math.floor((Date.now() - state.startTimestamp) / 1000))
     const newRemaining = Math.max(0, totalSeconds - elapsed)
-    const newElapsed = state.phase === 'focus' ? Math.min(state.focusDuration * 60, elapsed) : state.elapsedFocusSeconds
+    const newElapsed =
+      state.phase === 'focus' ? Math.min(state.focusDuration * 60, elapsed) : state.elapsedFocusSeconds
 
     if (newRemaining <= 0) {
       if (state.phase === 'focus') {
@@ -146,7 +154,9 @@ export const usePomodoro = create<PomodoroState>((set, get) => ({
         }
 
         // Notify
-        try { new Notification('专注时间结束', { body: '该休息了 ☕' }) } catch {}
+        try {
+          new Notification('专注时间结束', { body: '该休息了 ☕' })
+        } catch {}
 
         set({
           phase: 'break',
@@ -157,7 +167,9 @@ export const usePomodoro = create<PomodoroState>((set, get) => ({
       } else {
         // Break complete
         if (state.currentCycle >= state.totalCycles) {
-          try { new Notification('🎉 番茄钟全部完成！', { body: '太棒了，休息一下吧' }) } catch {}
+          try {
+            new Notification('🎉 番茄钟全部完成！', { body: '太棒了，休息一下吧' })
+          } catch {}
           set({
             phase: 'idle',
             status: 'stopped',
@@ -185,7 +197,9 @@ export const usePomodoro = create<PomodoroState>((set, get) => ({
     if (min < 1) min = 1
     set({ focusDuration: min })
     if (get().phase === 'idle') set({ remainingSeconds: min * 60 })
-    try { await api()?.settings.set('pomodoro_focus', String(min)) } catch (e) {
+    try {
+      await api()?.settings.set('pomodoro_focus', String(min))
+    } catch (e) {
       console.error('Failed to save pomodoro focus setting:', e)
     }
   },
@@ -193,7 +207,9 @@ export const usePomodoro = create<PomodoroState>((set, get) => ({
   setBreakDuration: async (min: number) => {
     if (min < 1) min = 1
     set({ breakDuration: min })
-    try { await api()?.settings.set('pomodoro_break', String(min)) } catch (e) {
+    try {
+      await api()?.settings.set('pomodoro_break', String(min))
+    } catch (e) {
       console.error('Failed to save pomodoro break setting:', e)
     }
   },
@@ -201,7 +217,9 @@ export const usePomodoro = create<PomodoroState>((set, get) => ({
   setTotalCycles: async (n: number) => {
     if (n < 1) n = 1
     set({ totalCycles: n })
-    try { await api()?.settings.set('pomodoro_cycles', String(n)) } catch (e) {
+    try {
+      await api()?.settings.set('pomodoro_cycles', String(n))
+    } catch (e) {
       console.error('Failed to save pomodoro cycles setting:', e)
     }
   }

@@ -15,6 +15,15 @@ import type {
 } from './types'
 
 declare global {
+  /** Auto-update status pushed from the main process via IPC. */
+  type UpdateStatus =
+    | { event: 'checking' }
+    | { event: 'available'; version: string }
+    | { event: 'not-available'; version: string }
+    | { event: 'downloading'; percent: number }
+    | { event: 'downloaded'; version: string }
+    | { event: 'error'; message: string }
+
   interface Window {
     electronAPI: {
       knowledge: {
@@ -29,7 +38,11 @@ declare global {
       }
       review: {
         getToday: () => Promise<ReviewRecord[]>
-        rate: (reviewId: number, quality: number, customDays?: number) => Promise<{ nextReviewDate: string | null; nextInterval: number }>
+        rate: (
+          reviewId: number,
+          quality: number,
+          customDays?: number
+        ) => Promise<{ nextReviewDate: string | null; nextInterval: number }>
         rollback: (reviewId: number) => Promise<{ content: string }>
         forget: (kpId: number) => Promise<{ nextReviewDate: string }>
         getStats: () => Promise<ReviewStats>
@@ -39,7 +52,12 @@ declare global {
         set: (key: string, value: string) => Promise<void>
       }
       plans: {
-        add: (content: string, type: string, config?: Record<string, unknown>, planDate?: string) => Promise<{ id: number }>
+        add: (
+          content: string,
+          type: string,
+          config?: Record<string, unknown>,
+          planDate?: string
+        ) => Promise<{ id: number }>
         getToday: () => Promise<DailyPlan[]>
         toggle: (planId: number) => Promise<void>
         delete: (planId: number) => Promise<void>
@@ -67,6 +85,14 @@ declare global {
       }
       app: {
         minimizeToTray: () => Promise<void>
+      }
+      update: {
+        getVersion: () => Promise<string>
+        getPlatform: () => Promise<string>
+        check: () => Promise<void>
+        install: () => Promise<void>
+        openRelease: () => Promise<void>
+        onStatus: (callback: (status: UpdateStatus) => void) => () => void
       }
       autoStart: {
         isEnabled: () => Promise<boolean>

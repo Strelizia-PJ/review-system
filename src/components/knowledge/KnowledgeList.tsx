@@ -17,13 +17,16 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ]
 
 export default function KnowledgeList() {
-  const { items, loading, error, fetchList, remove, update, search, select, forget, reschedule } = useKnowledge()
+  const { items, loading, error, fetchList, remove, update, search, select, forget, reschedule } =
+    useKnowledge()
   const [keyword, setKeyword] = useState('')
   const [sortBy, setSortBy] = useState<SortKey>('learn_date')
   const [asc, setAsc] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => { fetchList() }, [])
+  useEffect(() => {
+    fetchList()
+  }, [])
 
   const handleSearch = (value: string) => {
     setKeyword(value)
@@ -81,10 +84,14 @@ export default function KnowledgeList() {
           </SelectTrigger>
           <SelectContent>
             {SORT_OPTIONS.map(opt => (
-              <SelectItem key={`${opt.key}-desc`} value={`${opt.key}-desc`}>{opt.label} ↓</SelectItem>
+              <SelectItem key={`${opt.key}-desc`} value={`${opt.key}-desc`}>
+                {opt.label} ↓
+              </SelectItem>
             ))}
             {SORT_OPTIONS.map(opt => (
-              <SelectItem key={`${opt.key}-asc`} value={`${opt.key}-asc`}>{opt.label} ↑</SelectItem>
+              <SelectItem key={`${opt.key}-asc`} value={`${opt.key}-asc`}>
+                {opt.label} ↑
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -94,10 +101,7 @@ export default function KnowledgeList() {
       {loading ? (
         <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
       ) : sortedItems.length === 0 ? (
-        <EmptyState
-          icon="🌱"
-          title={keyword ? '未找到匹配的知识点' : '暂无知识点，在右侧添加第一个吧'}
-        />
+        <EmptyState icon="🌱" title={keyword ? '未找到匹配的知识点' : '暂无知识点，在右侧添加第一个吧'} />
       ) : (
         sortedItems.map(item => (
           <KnowledgeItem

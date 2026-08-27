@@ -1,22 +1,21 @@
-import { forwardRef, type HTMLAttributes } from 'react'
+import { forwardRef } from 'react'
 import * as TabsPrimitive from '@radix-ui/react-tabs'
 import { cn } from '../../utils/cn'
 
 const Tabs = TabsPrimitive.Root
 
-const TabsList = forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.List
-    ref={ref}
-    className={cn(
-      'inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground',
-      className
-    )}
-    {...props}
-  />
-))
+const TabsList = forwardRef<HTMLDivElement, React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>>(
+  ({ className, ...props }, ref) => (
+    <TabsPrimitive.List
+      ref={ref}
+      className={cn(
+        'inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground',
+        className
+      )}
+      {...props}
+    />
+  )
+)
 TabsList.displayName = 'TabsList'
 
 const TabsTrigger = forwardRef<
@@ -34,16 +33,15 @@ const TabsTrigger = forwardRef<
 ))
 TabsTrigger.displayName = 'TabsTrigger'
 
-const TabsContent = forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
->(({ className, ...props }, ref) => (
-  <TabsPrimitive.Content
-    ref={ref}
-    className={cn('mt-2 focus-visible:outline-none', className)}
-    {...props}
-  />
-))
+const TabsContent = forwardRef<HTMLDivElement, React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>>(
+  ({ className, ...props }, ref) => (
+    <TabsPrimitive.Content
+      ref={ref}
+      className={cn('mt-2 focus-visible:outline-none', className)}
+      {...props}
+    />
+  )
+)
 TabsContent.displayName = 'TabsContent'
 
 export { Tabs, TabsList, TabsTrigger, TabsContent }

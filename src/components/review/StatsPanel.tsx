@@ -15,9 +15,17 @@ export default function StatsPanel() {
 
   const cards = [
     { label: '总知识点', value: stats.total, color: 'bg-primary/10 text-primary' },
-    { label: '今日待复习', value: stats.todayPending, color: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
+    {
+      label: '今日待复习',
+      value: stats.todayPending,
+      color: 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+    },
     { label: '已逾期', value: stats.overdue, color: 'bg-destructive/10 text-destructive' },
-    { label: '已完成复习', value: stats.completed, color: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' }
+    {
+      label: '已完成复习',
+      value: stats.completed,
+      color: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+    }
   ]
 
   return (
@@ -43,8 +51,12 @@ export default function StatsPanel() {
           </ul>
           <div className="mt-2 space-y-0.5">
             <p className="font-medium text-foreground">评分含义 (四档):</p>
-            <p>4 = 易 — 完美回忆 <span className="mx-1">|</span> 3 = 过 — 基本正确</p>
-            <p>2 = 难 — 勉强想起 <span className="mx-1">|</span> 1 = 忘 — 完全忘记</p>
+            <p>
+              4 = 易 — 完美回忆 <span className="mx-1">|</span> 3 = 过 — 基本正确
+            </p>
+            <p>
+              2 = 难 — 勉强想起 <span className="mx-1">|</span> 1 = 忘 — 完全忘记
+            </p>
           </div>
         </div>
       </div>

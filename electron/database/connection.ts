@@ -64,8 +64,8 @@ export interface ReviewRecordRow {
   status: 'pending' | 'completed' | 'overdue'
   reviewed_at: string | null
   stage: number
-  quality: number | null  // 1-4 FSRS recall quality, null = unrated
-  rollback_log: string | null  // serialized ts-fsrs ReviewLog, set on rating for undo support
+  quality: number | null // 1-4 FSRS recall quality, null = unrated
+  rollback_log: string | null // serialized ts-fsrs ReviewLog, set on rating for undo support
 }
 
 /** Bump when adding a migration in migrations.ts; migrations run up to this version. */
@@ -104,13 +104,15 @@ function tryReadJSON(filePath: string): AppData | null {
     const parsed = JSON.parse(raw)
     // Validate top-level shape to avoid runtime crashes
     if (
-      typeof parsed !== 'object' || parsed === null ||
+      typeof parsed !== 'object' ||
+      parsed === null ||
       !Array.isArray(parsed.knowledge_points) ||
       !Array.isArray(parsed.review_records) ||
       !Array.isArray(parsed.daily_plans) ||
       !Array.isArray(parsed.daily_plan_completions) ||
       !Array.isArray(parsed.study_sessions) ||
-      typeof parsed.settings !== 'object' || parsed.settings === null
+      typeof parsed.settings !== 'object' ||
+      parsed.settings === null
     ) {
       console.error('Data file has invalid shape, treating as corrupt')
       return null

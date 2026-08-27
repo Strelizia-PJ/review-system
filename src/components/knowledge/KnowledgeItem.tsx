@@ -16,9 +16,17 @@ interface KnowledgeItemProps {
   onReviewNow?: (id: number) => void
 }
 
-const iconBtn = 'rounded-md p-1.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-accent-foreground'
+const iconBtn =
+  'rounded-md p-1.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-accent-foreground'
 
-export default function KnowledgeItem({ item, onDelete, onUpdate, onClick, onForget, onReviewNow }: KnowledgeItemProps) {
+export default function KnowledgeItem({
+  item,
+  onDelete,
+  onUpdate,
+  onClick,
+  onForget,
+  onReviewNow
+}: KnowledgeItemProps) {
   const [editing, setEditing] = useState(false)
   const [editContent, setEditContent] = useState(item.content)
   const [forgetConfirm, setForgetConfirm] = useState(false)
@@ -26,16 +34,19 @@ export default function KnowledgeItem({ item, onDelete, onUpdate, onClick, onFor
   const [reviewNowConfirm, setReviewNowConfirm] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const r = getRetrievability(item.card_state)
-  const rColor = r !== null
-    ? r > 0.9 ? 'text-emerald-600 dark:text-emerald-400'
-    : r > 0.7 ? 'text-amber-600 dark:text-amber-400'
-    : r > 0.5 ? 'text-orange-600 dark:text-orange-400'
-    : 'text-red-600 dark:text-red-400'
-    : ''
+  const rColor =
+    r !== null
+      ? r > 0.9
+        ? 'text-emerald-600 dark:text-emerald-400'
+        : r > 0.7
+          ? 'text-amber-600 dark:text-amber-400'
+          : r > 0.5
+            ? 'text-orange-600 dark:text-orange-400'
+            : 'text-red-600 dark:text-red-400'
+      : ''
   // Only offer "review now" when the next review is still in the future —
   // today/overdue items are already reachable from the review panels.
-  const canReviewNow = !!item.next_review_date
-    && item.next_review_date > dayjs().format('YYYY-MM-DD')
+  const canReviewNow = !!item.next_review_date && item.next_review_date > dayjs().format('YYYY-MM-DD')
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -94,24 +105,21 @@ export default function KnowledgeItem({ item, onDelete, onUpdate, onClick, onFor
               <span>学习日期 {item.learn_date || item.created_at?.substring(0, 10)}</span>
               <span className="text-border">|</span>
               <span>已复习 {item.completed_stages} 次</span>
-              {r !== null && (
-                <span className={cn('font-medium', rColor)}>
-                  记忆 {Math.round(r * 100)}%
-                </span>
-              )}
+              {r !== null && <span className={cn('font-medium', rColor)}>记忆 {Math.round(r * 100)}%</span>}
               {item.next_review_date && (
                 <>
                   <span className="text-border">|</span>
-                  <span>
-                    下次复习 {item.next_review_date}
-                  </span>
+                  <span>下次复习 {item.next_review_date}</span>
                 </>
               )}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-0.5" onClick={e => e.stopPropagation()}>
             <button
-              onClick={() => { setEditContent(item.content); setEditing(true) }}
+              onClick={() => {
+                setEditContent(item.content)
+                setEditing(true)
+              }}
               className={iconBtn}
               title="编辑"
             >
@@ -152,7 +160,10 @@ export default function KnowledgeItem({ item, onDelete, onUpdate, onClick, onFor
         title="提前复习"
         description={`把「${truncated}」的下次复习（${item.next_review_date}）拉到今天？记忆状态不变，进入今日复习正常评分即可。`}
         confirmText="拉到今天"
-        onConfirm={() => { onReviewNow?.(item.id); setReviewNowConfirm(false) }}
+        onConfirm={() => {
+          onReviewNow?.(item.id)
+          setReviewNowConfirm(false)
+        }}
       />
 
       <ConfirmDialog
@@ -161,7 +172,10 @@ export default function KnowledgeItem({ item, onDelete, onUpdate, onClick, onFor
         title="重置记忆状态"
         description={`确定重置「${truncated}」的记忆状态吗？复习记录将被清空，该知识点需要重新从第一天开始复习。`}
         confirmText="确认重置"
-        onConfirm={() => { onForget?.(item.id); setForgetConfirm(false) }}
+        onConfirm={() => {
+          onForget?.(item.id)
+          setForgetConfirm(false)
+        }}
       />
 
       <ConfirmDialog
@@ -171,7 +185,10 @@ export default function KnowledgeItem({ item, onDelete, onUpdate, onClick, onFor
         description={`确定删除「${truncated}」吗？此操作不可撤销。`}
         confirmText="确认删除"
         variant="destructive"
-        onConfirm={() => { onDelete(item.id); setDeleteConfirm(false) }}
+        onConfirm={() => {
+          onDelete(item.id)
+          setDeleteConfirm(false)
+        }}
       />
     </>
   )

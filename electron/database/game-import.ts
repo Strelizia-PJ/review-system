@@ -88,8 +88,7 @@ export function scanGameSaves(dirPath: string): {
 
   // Build result with local comparison
   const data = getData()
-  const sortedDays = Array.from(allDays.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
+  const sortedDays = Array.from(allDays.entries()).sort(([a], [b]) => a.localeCompare(b))
 
   const days: ScannedDay[] = sortedDays.map(([date, gameMinutes]) => {
     const localMinutes = data.study_sessions
@@ -119,12 +118,8 @@ export function applyGameData(
   const data = getData()
 
   // Count and remove existing records for selected dates
-  const overwrittenCount = data.study_sessions.filter(
-    s => selectedSet.has(s.date)
-  ).length
-  data.study_sessions = data.study_sessions.filter(
-    s => !selectedSet.has(s.date)
-  )
+  const overwrittenCount = data.study_sessions.filter(s => selectedSet.has(s.date)).length
+  data.study_sessions = data.study_sessions.filter(s => !selectedSet.has(s.date))
 
   // Insert game data
   for (const day of toImport) {

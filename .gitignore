@@ -8,3 +8,5 @@ release/
 .playwright-mcp/
 .mimosa/
 .zcode/
+.test-results/
+test-results/

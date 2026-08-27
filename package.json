@@ -6,7 +6,23 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "package": "vite build && electron-builder --win --x64 --config.win.signAndEditExecutable=false"
+    "package": "vite build && electron-builder --win --x64 --config.win.signAndEditExecutable=false",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "sync-github": "git push github main --tags",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,json,css,md,yml}": [
+      "prettier --write"
+    ]
   },
   "keywords": [
     "FSRS",
@@ -26,6 +42,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.21",
+    "electron-updater": "^6.8.9",
     "json5": "^2.2.3",
     "katex": "^0.17.0",
     "lucide-react": "^1.31.0",
@@ -40,19 +57,31 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.6",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^6.0.2",
     "autoprefixer": "^10.5.0",
     "electron": "^42.2.0",
     "electron-builder": "^26.8.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "happy-dom": "^20.11.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "png-to-ico": "^3.0.1",
     "postcss": "^8.5.15",
+    "prettier": "^3.9.6",
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.19",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.68.0",
     "vite": "^8.0.14",
     "vite-plugin-electron": "^0.29.1",
-    "vite-plugin-electron-renderer": "^0.14.7"
+    "vite-plugin-electron-renderer": "^0.14.7",
+    "vitest": "^4.1.11"
   }
 }

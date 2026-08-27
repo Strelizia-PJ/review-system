@@ -1,5 +1,14 @@
 import dayjs from 'dayjs'
-import { getData, saveData, getNextKpId, getNextRrId, getNextPlanId, getNextCompletionId, getNextSessionId, getNextMistakeId } from './connection'
+import {
+  getData,
+  saveData,
+  getNextKpId,
+  getNextRrId,
+  getNextPlanId,
+  getNextCompletionId,
+  getNextSessionId,
+  getNextMistakeId
+} from './connection'
 import type { KnowledgePointRow, ReviewRecordRow, DailyPlanRow, MistakePointRow } from './connection'
 import { createEmptyCard, fsrs, Rating } from 'ts-fsrs'
 
@@ -34,16 +43,18 @@ function getEffectiveMaxInterval(data: ReturnType<typeof getData>, kp: Knowledge
 
 /** Map 4-button rating → ts-fsrs Rating enum */
 function toFSRSRating(q: number): Rating {
-  if (q <= 1) return Rating.Again  // 忘 (0/1)
-  if (q === 2) return Rating.Hard  // 难 (2)
-  if (q === 3) return Rating.Good  // 过 (3)
-  return Rating.Easy               // 易 (4)
+  if (q <= 1) return Rating.Again // 忘 (0/1)
+  if (q === 2) return Rating.Hard // 难 (2)
+  if (q === 3) return Rating.Good // 过 (3)
+  return Rating.Easy // 易 (4)
 }
 
 /** Deserialize card_state, falling back to empty card */
 function parseCard(kp: KnowledgePointRow): ReturnType<typeof createEmptyCard> {
   if (kp.card_state) {
-    try { return { ...createEmptyCard(), ...JSON.parse(kp.card_state) } } catch {}
+    try {
+      return { ...createEmptyCard(), ...JSON.parse(kp.card_state) }
+    } catch {}
   }
   return createEmptyCard()
 }
@@ -62,9 +73,10 @@ export function addKnowledgePoint(content: string, learnDate?: string): { id: nu
   const now = dayjs().format('YYYY-MM-DD HH:mm:ss')
 
   // Validate learnDate, fall back to today if invalid
-  const baseDate = (learnDate && dayjs(learnDate, 'YYYY-MM-DD').isValid())
-    ? dayjs(learnDate).format('YYYY-MM-DD')
-    : dayjs().format('YYYY-MM-DD')
+  const baseDate =
+    learnDate && dayjs(learnDate, 'YYYY-MM-DD').isValid()
+      ? dayjs(learnDate).format('YYYY-MM-DD')
+      : dayjs().format('YYYY-MM-DD')
 
   // FSRS: create fresh card, schedule first review 1 day after learning
   const card = createEmptyCard()
@@ -268,7 +280,11 @@ export function getOverdueReviews(): Array<
     .sort((a, b) => a.schedule_date.localeCompare(b.schedule_date))
 }
 
-export function rateReview(reviewId: number, quality: number, customDays?: number): {
+export function rateReview(
+  reviewId: number,
+  quality: number,
+  customDays?: number
+): {
   nextReviewDate: string | null
   nextInterval: number
 } {
@@ -297,8 +313,8 @@ export function rateReview(reviewId: number, quality: number, customDays?: numbe
   record.reviewed_at = dayjs().format('YYYY-MM-DD HH:mm:ss')
   record.quality = quality
   // Clean up any other pending records for this KP (safety net)
-  data.review_records = data.review_records.filter(r =>
-    !(r.knowledge_point_id === record.knowledge_point_id && r.status === 'pending' && r.id !== reviewId)
+  data.review_records = data.review_records.filter(
+    r => !(r.knowledge_point_id === record.knowledge_point_id && r.status === 'pending' && r.id !== reviewId)
   )
 
   if (!kp) {
@@ -315,9 +331,10 @@ export function rateReview(reviewId: number, quality: number, customDays?: numbe
   // interval at the effective max (global/per-KP). scheduled_days AND due are
   // normalized together so the knowledge list/detail panel (which read card.due)
   // stay consistent with schedule_date.
-  const cappedDays = customInterval !== null
-    ? customInterval
-    : Math.min(Math.max(result.card.scheduled_days, 1), getEffectiveMaxInterval(data, kp))
+  const cappedDays =
+    customInterval !== null
+      ? customInterval
+      : Math.min(Math.max(result.card.scheduled_days, 1), getEffectiveMaxInterval(data, kp))
   result.card.scheduled_days = cappedDays
   result.card.due = dayjs(now).add(cappedDays, 'day').toDate()
 
@@ -416,7 +433,10 @@ export function forgetKnowledgePoint(kpId: number): { nextReviewDate: string } {
 /** Set a per-KP interval cap (days), or null to follow the global cap.
  *  If the pending review / card due exceed the new effective cap, they are
  *  immediately re-capped (single-KP variant of the migration cap logic). */
-export function setKnowledgePointMaxInterval(kpId: number, days: number | null): {
+export function setKnowledgePointMaxInterval(
+  kpId: number,
+  days: number | null
+): {
   effectiveMaxIntervalDays: number
 } {
   const data = getData()
@@ -436,9 +456,7 @@ export function setKnowledgePointMaxInterval(kpId: number, days: number | null):
   const today = dayjs()
   const capDate = today.add(effective, 'day')
 
-  const record = data.review_records.find(
-    r => r.knowledge_point_id === kpId && r.status === 'pending'
-  )
+  const record = data.review_records.find(r => r.knowledge_point_id === kpId && r.status === 'pending')
   if (record && dayjs(record.schedule_date).diff(today, 'day') > effective) {
     record.schedule_date = capDate.format('YYYY-MM-DD')
   }
@@ -477,9 +495,7 @@ export function reschedulePendingReview(kpId: number, date: string): { scheduleD
   if (!target.isValid()) throw new Error('无效日期')
   const formatted = target.format('YYYY-MM-DD')
 
-  let record = data.review_records.find(
-    r => r.knowledge_point_id === kpId && r.status === 'pending'
-  )
+  let record = data.review_records.find(r => r.knowledge_point_id === kpId && r.status === 'pending')
   if (!record) {
     record = {
       id: getNextRrId(),
@@ -515,9 +531,7 @@ export function getPendingReviewCount(): number {
   const data = getData()
   const today = dayjs().format('YYYY-MM-DD')
 
-  return data.review_records.filter(
-    r => r.schedule_date <= today && r.status === 'pending'
-  ).length
+  return data.review_records.filter(r => r.schedule_date <= today && r.status === 'pending').length
 }
 
 export function getReviewStats(): {
@@ -533,12 +547,8 @@ export function getReviewStats(): {
   const todayPending = data.review_records.filter(
     r => r.schedule_date <= today && r.status === 'pending'
   ).length
-  const overdue = data.review_records.filter(
-    r => r.schedule_date < today && r.status === 'pending'
-  ).length
-  const completed = data.review_records.filter(
-    r => r.status === 'completed'
-  ).length
+  const overdue = data.review_records.filter(r => r.schedule_date < today && r.status === 'pending').length
+  const completed = data.review_records.filter(r => r.status === 'completed').length
 
   return { total, todayPending, overdue, completed }
 }
@@ -589,7 +599,12 @@ export function deleteMistakePoint(id: number): void {
 
 // ---- Daily Plans ----
 
-export function addDailyPlan(content: string, type: string, config?: Record<string, unknown>, planDate?: string): { id: number } {
+export function addDailyPlan(
+  content: string,
+  type: string,
+  config?: Record<string, unknown>,
+  planDate?: string
+): { id: number } {
   const data = getData()
   const id = getNextPlanId()
 
@@ -620,13 +635,9 @@ export function getTodayPlans(): Array<{
 
   return data.daily_plans
     .map(plan => {
-      const completion = data.daily_plan_completions.find(
-        c => c.plan_id === plan.id && c.date === today
-      )
+      const completion = data.daily_plan_completions.find(c => c.plan_id === plan.id && c.date === today)
       const days = (plan.config as any).daysOfWeek as number[] | undefined
-      const dueToday = plan.type === 'weekly'
-        ? (days ? days.includes(dayOfWeek) : true)
-        : true
+      const dueToday = plan.type === 'weekly' ? (days ? days.includes(dayOfWeek) : true) : true
       return { ...plan, completed: !!completion, dueToday }
     })
     .filter(plan => {
@@ -654,15 +665,11 @@ export function togglePlanCompletion(planId: number): void {
   const data = getData()
   const today = dayjs().format('YYYY-MM-DD')
 
-  const existing = data.daily_plan_completions.find(
-    c => c.plan_id === planId && c.date === today
-  )
+  const existing = data.daily_plan_completions.find(c => c.plan_id === planId && c.date === today)
 
   if (existing) {
     // Undo completion
-    data.daily_plan_completions = data.daily_plan_completions.filter(
-      c => c.id !== existing.id
-    )
+    data.daily_plan_completions = data.daily_plan_completions.filter(c => c.id !== existing.id)
   } else {
     // Mark complete
     data.daily_plan_completions.push({
@@ -744,7 +751,10 @@ export function getRecent7DaysStats(): {
   return { days, avg }
 }
 
-export function getMonthStats(year: number, month: number): {
+export function getMonthStats(
+  year: number,
+  month: number
+): {
   days: { date: string; minutes: number }[]
   total: number
   avg: number
@@ -774,7 +784,10 @@ export function getMonthStats(year: number, month: number): {
 
 // ---- Review Activity per Month (for calendar overlay) ----
 
-export function getMonthReviewStats(year: number, month: number): {
+export function getMonthReviewStats(
+  year: number,
+  month: number
+): {
   days: { date: string; completedCount: number }[]
   total: number
 } {

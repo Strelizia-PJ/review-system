@@ -48,7 +48,17 @@ export interface ReviewStats {
   completed: number
 }
 
-export type NavPage = 'knowledge' | 'today' | 'mistakes' | 'manage' | 'plans' | 'pomodoro' | 'study-stats' | 'import' | 'stats' | 'settings'
+export type NavPage =
+  | 'knowledge'
+  | 'today'
+  | 'mistakes'
+  | 'manage'
+  | 'plans'
+  | 'pomodoro'
+  | 'study-stats'
+  | 'import'
+  | 'stats'
+  | 'settings'
 
 export interface MistakePoint {
   id: number

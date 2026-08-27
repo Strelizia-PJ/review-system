@@ -15,32 +15,57 @@ npm run dev
 # 类型检查
 npx tsc --noEmit
 
+# ESLint 静态检查（0 错误，警告可存在）
+npm run lint
+
+# 单元测试（Vitest + Testing Library）
+npm run test
+
 # 生产构建
 npm run build
 
 # 一键构建+打包（需设 ELECTRON_MIRROR 镜像加速）
 npm run package
+
+# 同步 main+tags 到 GitHub（构建发布仓库）
+npm run sync-github
 ```
 
 **工作流程（必须遵守）**：用户提出需求 → 修改代码 → **自检** → 用户检查确认满足要求 → **此时才打包** Windows 安装包（输出到 `release/芝士学爆-Setup-<版本号>.exe`，版本号见 package.json）。未经用户确认，不执行 `npm run package`。
 
 **自检分级**：
+
 - **简单任务**（单文件小改、纯样式/文案调整、类型修复）：`npx tsc --noEmit` 零错误 + `npm run build` 通过即可
 - **复杂任务**（涉及 3+ 文件、跨模块交互链路、弹窗/表单/导航等 UI 行为变更、数据层或迁移改动）：在上述基础上，**必须通过 Playwright（浏览器连接 dev server，可用 mock 注入 electronAPI）验证交互行为**
 
+## CI/CD 与发布（GitHub Actions）
+
+- **双仓库**：Gitee `review-system` 为主开发仓库；GitHub `Strelizia-PJ/review-system`（public）为构建发布仓库（remote 名 `github`）。日常推 Gitee，发布前 `npm run sync-github`
+- **ci.yml**（push/PR main）：lint → tsc → vitest → vite build
+- **release.yml**（tag `v*` 触发）：windows-latest 产出 NSIS 安装包（含 latest.yml/blockmap），macos-latest 产出 DMG（x64+arm64，ad-hoc 签名），全部自动上传 GitHub Release（内置 GITHUB_TOKEN，无需个人凭据）
+- **发布 SOP**：`npm version <版本>` → `npm run sync-github`（tag 推送触发构建）→ 浏览器或匿名 API 确认 Actions 成功 → Gitee 网页手动建对应 Release
+- **自动更新**：electron-updater，仅 Windows 打包环境启用（启动 30s 后静默检查 + 设置页手动检查/进度/重启安装）；更新源为 GitHub Releases。macOS 未签名不支持在线更新（设置页显示跳转下载页）。CI 状态可用匿名 API `https://api.github.com/repos/Strelizia-PJ/review-system/actions/runs` 查询
+- **已知限制**：国内访问 GitHub 更新源可能慢（后续可加 OSS 镜像）；macOS 首次打开需右键→打开
+
+## 工程化规范
+
+- **ESLint**（flat config `eslint.config.mjs`）：typescript-eslint recommended + react-hooks；`no-explicit-any` 降为警告（迁移代码的历史字段访问）；空 catch 允许；提交前 husky+lint-staged 自动 `eslint --fix` + `prettier`
+- **Prettier**：无分号、单引号、行宽 110
+- **测试**（`tests/`）：Vitest + @testing-library/react + happy-dom；覆盖 constants 纯函数（FSRS 预览/保留率/封顶）与共享组件（Button/Badge/Bars/ConfirmDialog）；数据层单测待 IStorage 抽象后补充
+
 ## 技术栈
 
-| 层          | 技术                                                           |
-| ----------- | -------------------------------------------------------------- |
-| 桌面框架    | Electron 42                                                    |
-| 前端        | React 18 + TypeScript                                          |
-| 构建        | Vite 8 + vite-plugin-electron                                  |
+| 层          | 技术                                                         |
+| ----------- | ------------------------------------------------------------ |
+| 桌面框架    | Electron 42                                                  |
+| 前端        | React 18 + TypeScript                                        |
+| 构建        | Vite 8 + vite-plugin-electron                                |
 | 样式        | Tailwind CSS 3（`darkMode: 'class'`）                        |
-| 状态管理    | Zustand 5                                                      |
+| 状态管理    | Zustand 5                                                    |
 | 数据存储    | JSON 文件（`%APPDATA%/forgetting-curve-reminder/data.json`） |
-| Markdown    | @uiw/react-md-editor + remark-math + rehype-katex              |
-| 非标准 JSON | json5                                                          |
-| 打包        | electron-builder (NSIS)                                        |
+| Markdown    | @uiw/react-md-editor + remark-math + rehype-katex            |
+| 非标准 JSON | json5                                                        |
+| 打包        | electron-builder (NSIS)                                      |
 
 ## 架构分层
 
@@ -100,7 +125,16 @@ src/                       # React 渲染进程
 应用使用基于状态的页面切换（非路由）。`AppLayout` 维护 `currentPage: NavPage` 状态，`Sidebar` 渲染导航按钮。`NavPage` 类型定义在 `src/types/index.ts`：
 
 ```ts
-'knowledge' | 'today' | 'mistakes' | 'manage' | 'plans' | 'pomodoro' | 'study-stats' | 'import' | 'stats' | 'settings'
+;'knowledge' |
+  'today' |
+  'mistakes' |
+  'manage' |
+  'plans' |
+  'pomodoro' |
+  'study-stats' |
+  'import' |
+  'stats' |
+  'settings'
 ```
 
 逾期复习不再单独成页：今日复习面板包含全部待复习条目（含逾期，红色高亮标注）。
@@ -140,12 +174,14 @@ Tailwind 使用 `darkMode: 'class'`。`useTheme` hook 管理三种模式（light
 - **kcimg:// 协议**: 本地图片通过自定义协议加载，路径有严格校验（防目录穿越）。图片文件存储在 `%APPDATA%/images/{kpId}/`。
 - **图片清理**: 更新知识点（`knowledge:update`）时自动通过 `deleteOrphanImages()` 清理 markdown 中不再引用的图片文件，删除知识点时通过 `deleteImages()` 删除整个目录。
 - **循环依赖避免**: `notifications.ts` 不能直接导入 `main.ts`，通过 `setMainWindowGetter()` 注入主窗口引用。
-- **@uiw/react-md-editor**: 基于 ProseMirror 的 WYSIWYG Markdown 编辑器，原生支持 Ctrl+Z/Y 撤销重做、KaTeX 数学公式（$...$ 行内 + 
+- **@uiw/react-md-editor**: 基于 ProseMirror 的 WYSIWYG Markdown 编辑器，原生支持 Ctrl+Z/Y 撤销重做、KaTeX 数学公式（$...$ 行内 +
+
   $$
   ...
   $$
 
-   块级）、自定义图片上传。内容通过 `markdownUpdated` 事件 2s 防抖自动保存。
+  块级）、自定义图片上传。内容通过 `markdownUpdated` 事件 2s 防抖自动保存。
+
 - **托盘退出**: 使用 `app.quit()` 而非 `mainWindow.destroy()` 确保进程完全结束。
 - **开机自启动**: 仅在 `settings['auto_start'] !== 'false'` 时启用，尊重用户偏好。
 - **数据校验**: 加载 data.json 时进行顶级字段结构校验 + ID 计数器 NaN 过滤。
@@ -169,19 +205,19 @@ Tailwind 使用 `darkMode: 'class'`。`useTheme` hook 管理三种模式（light
 
 **按修改模块的测试清单：**
 
-| 修改涉及模块                         | 必须验证的操作                                                                                     |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `electron/database/*`              | 启动后检查控制台无数据加载错误                                                                     |
-| `useKnowledge.ts` / knowledge 组件 | 添加知识点 → 搜索 → 编辑标题 → 删除                                                             |
-| `useReview.ts` / review 组件       | 查看今日复习列表 → 完成一条复习                                                                   |
-| `useDailyPlans.ts` / plans 组件    | 添加计划 → 切换完成状态 → 删除                                                                   |
-| `usePomodoro.ts` / pomodoro 组件   | 启动番茄钟 → 等待 5s 确认倒计时 → 暂停 → 重置                                                   |
-| `DetailPanel.tsx` / `@uiw/react-md-editor`       | 打开知识点详情 → 编辑 markdown → 输入$...$ 公式确认渲染 → Ctrl+Z 撤销 → 保存 → 重新打开确认 |
-| `images.ts` / kcimg 协议           | 上传图片后确认渲染 → 删除图片引用后保存 → 确认孤儿文件已清理                                     |
-| `tray.ts` / `notifications.ts`   | 检查托盘图标可见（通过 snapshot 确认不报错）                                                       |
-| `GameImportPage.tsx`               | 输入路径 → 扫描 → 选中日期 → 导入                                                               |
-| `Sidebar.tsx` / 导航               | 逐个点击导航按钮确认页面切换正常                                                                   |
-| `useTheme.ts` / 暗色模式           | 切换主题确认无报错                                                                                 |
+| 修改涉及模块                               | 必须验证的操作                                                                              |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `electron/database/*`                      | 启动后检查控制台无数据加载错误                                                              |
+| `useKnowledge.ts` / knowledge 组件         | 添加知识点 → 搜索 → 编辑标题 → 删除                                                         |
+| `useReview.ts` / review 组件               | 查看今日复习列表 → 完成一条复习                                                             |
+| `useDailyPlans.ts` / plans 组件            | 添加计划 → 切换完成状态 → 删除                                                              |
+| `usePomodoro.ts` / pomodoro 组件           | 启动番茄钟 → 等待 5s 确认倒计时 → 暂停 → 重置                                               |
+| `DetailPanel.tsx` / `@uiw/react-md-editor` | 打开知识点详情 → 编辑 markdown → 输入$...$ 公式确认渲染 → Ctrl+Z 撤销 → 保存 → 重新打开确认 |
+| `images.ts` / kcimg 协议                   | 上传图片后确认渲染 → 删除图片引用后保存 → 确认孤儿文件已清理                                |
+| `tray.ts` / `notifications.ts`             | 检查托盘图标可见（通过 snapshot 确认不报错）                                                |
+| `GameImportPage.tsx`                       | 输入路径 → 扫描 → 选中日期 → 导入                                                           |
+| `Sidebar.tsx` / 导航                       | 逐个点击导航按钮确认页面切换正常                                                            |
+| `useTheme.ts` / 暗色模式                   | 切换主题确认无报错                                                                          |
 
 **验证通过标准：**
 
@@ -199,13 +235,13 @@ Tailwind 使用 `darkMode: 'class'`。`useTheme` hook 管理三种模式（light
 
 本项目 `.claude/` 目录下配置了以下专属自动化工具：
 
-| 类型  | 名称                           | 触发方式         | 用途                                       |
-| ----- | ------------------------------ | ---------------- | ------------------------------------------ |
+| 类型  | 名称                         | 触发方式       | 用途                                     |
+| ----- | ---------------------------- | -------------- | ---------------------------------------- |
 | Skill | `package-app`                | `/package-app` | 一键 TypeScript 检查 → 构建 → 打包安装包 |
-| Skill | `verify-app`                 | `/verify-app`  | 启动应用 → Playwright 自动化验证 UI       |
-| Agent | `electron-security-reviewer` | 自动/手动派遣    | Electron 安全审计（IPC、协议、沙箱）       |
-| Agent | `code-reviewer`              | 自动/手动派遣    | 通用代码审查（类型、错误处理、规范）       |
-| Hook  | `PreToolUse`                 | 自动（拦截）     | 阻止直接编辑 `package-lock.json`         |
+| Skill | `verify-app`                 | `/verify-app`  | 启动应用 → Playwright 自动化验证 UI      |
+| Agent | `electron-security-reviewer` | 自动/手动派遣  | Electron 安全审计（IPC、协议、沙箱）     |
+| Agent | `code-reviewer`              | 自动/手动派遣  | 通用代码审查（类型、错误处理、规范）     |
+| Hook  | `PreToolUse`                 | 自动（拦截）   | 阻止直接编辑 `package-lock.json`         |
 
 **Skills** 通过 `/skill-name` 调用。**Agents** 可被 Claude 自动派遣或在对话中指定。**Hooks** 在对应事件时自动触发。
 

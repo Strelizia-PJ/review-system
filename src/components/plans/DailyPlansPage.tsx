@@ -22,7 +22,9 @@ export default function DailyPlansPage() {
   const [planDate, setPlanDate] = useState(dayjs().format('YYYY-MM-DD'))
   const [showNotDue, setShowNotDue] = useState(false)
 
-  useEffect(() => { fetchToday() }, [])
+  useEffect(() => {
+    fetchToday()
+  }, [])
 
   const handleAdd = async () => {
     const trimmed = content.trim()
@@ -72,21 +74,14 @@ export default function DailyPlansPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <p className="text-sm text-muted-foreground">
-        {dayjs(today).format('YYYY 年 M 月 D 日')}
-      </p>
+      <p className="text-sm text-muted-foreground">{dayjs(today).format('YYYY 年 M 月 D 日')}</p>
 
       {/* Input area */}
       <div className="space-y-3 rounded-lg border border-border bg-card p-4 transition-colors">
         {/* Date picker */}
         <div>
           <label className="mb-1 block text-xs text-muted-foreground">计划日期</label>
-          <DatePicker
-            value={planDate}
-            max={today}
-            onChange={setPlanDate}
-            className="h-8 w-44 text-sm"
-          />
+          <DatePicker value={planDate} max={today} onChange={setPlanDate} className="h-8 w-44 text-sm" />
         </div>
 
         <Input
@@ -181,21 +176,24 @@ export default function DailyPlansPage() {
                 onClick={() => setShowNotDue(!showNotDue)}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent"
               >
-                {showNotDue ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                {showNotDue ? (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5" />
+                )}
                 <span>非今日计划 ({notDueItems.length})</span>
               </button>
-              {showNotDue && notDueItems.map(item => (
-                <PlanItem key={item.id} item={item} onToggle={toggle} onDelete={remove} />
-              ))}
+              {showNotDue &&
+                notDueItems.map(item => (
+                  <PlanItem key={item.id} item={item} onToggle={toggle} onDelete={remove} />
+                ))}
             </>
           )}
 
           {/* Completed section */}
           {completedItems.length > 0 && (
             <>
-              <p className="pb-1 pt-2 text-xs text-muted-foreground">
-                已完成 ({completedItems.length})
-              </p>
+              <p className="pb-1 pt-2 text-xs text-muted-foreground">已完成 ({completedItems.length})</p>
               {completedItems.map(item => (
                 <PlanItem key={item.id} item={item} onToggle={toggle} onDelete={remove} />
               ))}

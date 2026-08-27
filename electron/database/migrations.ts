@@ -66,9 +66,7 @@ const migrations: Record<number, () => void> = {
       if (pendingRecords.length > 0) {
         const earliest = pendingRecords[0]
         kp.next_review_date = earliest.schedule_date
-        kp.last_interval = completedCount === 0
-          ? 1
-          : EBBINGHAUS_INTERVALS[Math.min(completedCount - 1, 7)]
+        kp.last_interval = completedCount === 0 ? 1 : EBBINGHAUS_INTERVALS[Math.min(completedCount - 1, 7)]
 
         // Remove stale pre-generated Ebbinghaus records (keep only earliest pending)
         const keepIds = new Set([earliest.id])
@@ -82,7 +80,7 @@ const migrations: Record<number, () => void> = {
     // Add quality field to all existing review_records
     for (const rec of data.review_records) {
       if ((rec as any).quality === undefined) {
-        (rec as any).quality = null
+        ;(rec as any).quality = null
       }
     }
   },
@@ -180,7 +178,8 @@ function capReviewIntervals(): void {
   }
 }
 
-export function runMigrations(): void {  const data = getData()
+export function runMigrations(): void {
+  const data = getData()
 
   if (data.schema_version >= CURRENT_SCHEMA_VERSION) return
 

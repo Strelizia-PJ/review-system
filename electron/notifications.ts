@@ -7,10 +7,7 @@ export function setMainWindowGetter(fn: () => BrowserWindow | null): void {
   getMainWindow = fn
 }
 
-export function sendReviewReminder(
-  pendingCount: number,
-  overdueCount: number
-): void {
+export function sendReviewReminder(pendingCount: number, overdueCount: number): void {
   if (!Notification.isSupported()) return
 
   let body: string

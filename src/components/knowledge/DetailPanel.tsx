@@ -40,28 +40,33 @@ export default function DetailPanel({ kpId, onBack, onUpdate }: DetailPanelProps
     loadDetail()
   }, [kpId])
 
-  const saveDetail = useCallback(async (newDetail: string, newTitle?: string) => {
-    const t = newTitle ?? title
-    if (savingRef.current) return
-    // Clear pending auto-save timer so it doesn't fire after a manual save
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current)
-      saveTimerRef.current = null
-    }
-    savingRef.current = true
-    setSaving(true)
-    try {
-      await onUpdate(kpId, t, newDetail)
-      setKp(prev => prev ? { ...prev, content: t, detail: newDetail } : null)
-    } finally {
-      savingRef.current = false
-      setSaving(false)
-    }
-  }, [kpId, title, onUpdate])
+  const saveDetail = useCallback(
+    async (newDetail: string, newTitle?: string) => {
+      const t = newTitle ?? title
+      if (savingRef.current) return
+      // Clear pending auto-save timer so it doesn't fire after a manual save
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = null
+      }
+      savingRef.current = true
+      setSaving(true)
+      try {
+        await onUpdate(kpId, t, newDetail)
+        setKp(prev => (prev ? { ...prev, content: t, detail: newDetail } : null))
+      } finally {
+        savingRef.current = false
+        setSaving(false)
+      }
+    },
+    [kpId, title, onUpdate]
+  )
 
   // Keep ref in sync so the auto-save effect always calls the latest saveDetail
   const saveDetailRef = useRef(saveDetail)
-  saveDetailRef.current = saveDetail
+  useEffect(() => {
+    saveDetailRef.current = saveDetail
+  }, [saveDetail])
 
   // Save then navigate back — no need to wait for auto-save
   const handleSaveAndBack = useCallback(async () => {
@@ -110,7 +115,9 @@ export default function DetailPanel({ kpId, onBack, onUpdate }: DetailPanelProps
           const buffer = await file.arrayBuffer()
           const fileName = await window.electronAPI.image.save(kpId, new Uint8Array(buffer), file.name)
           api.replaceSelection(`![${file.name.replace(/\.[^.]+$/, '')}](kcimg://${kpId}/${fileName})`)
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
       input.click()
     }
@@ -128,8 +135,15 @@ export default function DetailPanel({ kpId, onBack, onUpdate }: DetailPanelProps
           返回并保存
         </button>
         <input
-          type="text" value={title} onChange={e => setTitle(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur() } }}
+          type="text"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              ;(e.target as HTMLInputElement).blur()
+            }
+          }}
           onBlur={() => saveDetail(detail, title)}
           className="flex-1 bg-transparent text-lg font-semibold text-foreground outline-none placeholder:text-muted-foreground"
           placeholder="知识点标题"
@@ -152,31 +166,40 @@ export default function DetailPanel({ kpId, onBack, onUpdate }: DetailPanelProps
       {/* Markdown editor */}
       <div className="flex-1 overflow-hidden" data-color-mode={isDark ? 'dark' : 'light'}>
         {loadError ? (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">加载失败</div>
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            加载失败
+          </div>
         ) : (
-        <MDEditor
-          value={detail}
-          onChange={val => setDetail(val || '')}
-          height="100%"
-          visibleDragbar={false}
-          preview="live"
-          autoFocus
-          previewOptions={{
-            remarkPlugins: [remarkMath, remarkBreaks],
-            rehypePlugins: [[rehypeKatex, { throwOnError: false }]],
-          }}
-          commands={[commands.codeEdit, commands.codeLive, commands.codePreview]}
-          extraCommands={[
-            imageCommand,
-            commands.bold, commands.italic, commands.strikethrough, commands.title,
-            commands.divider,
-            commands.link, commands.quote, commands.code,
-            commands.divider,
-            commands.unorderedListCommand, commands.orderedListCommand, commands.checkedListCommand,
-            commands.divider,
-            commands.table
-          ]}
-        />
+          <MDEditor
+            value={detail}
+            onChange={val => setDetail(val || '')}
+            height="100%"
+            visibleDragbar={false}
+            preview="live"
+            autoFocus
+            previewOptions={{
+              remarkPlugins: [remarkMath, remarkBreaks],
+              rehypePlugins: [[rehypeKatex, { throwOnError: false }]]
+            }}
+            commands={[commands.codeEdit, commands.codeLive, commands.codePreview]}
+            extraCommands={[
+              imageCommand,
+              commands.bold,
+              commands.italic,
+              commands.strikethrough,
+              commands.title,
+              commands.divider,
+              commands.link,
+              commands.quote,
+              commands.code,
+              commands.divider,
+              commands.unorderedListCommand,
+              commands.orderedListCommand,
+              commands.checkedListCommand,
+              commands.divider,
+              commands.table
+            ]}
+          />
         )}
       </div>
     </div>

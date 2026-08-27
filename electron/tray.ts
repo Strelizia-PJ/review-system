@@ -7,9 +7,7 @@ let updateMenuFn: (() => void) | null = null
 
 function getIconPath(): string {
   // In production, icon is in process.resourcesPath; in dev, in project resources/
-  const resourcePath = app.isPackaged
-    ? process.resourcesPath
-    : path.join(app.getAppPath(), 'resources')
+  const resourcePath = app.isPackaged ? process.resourcesPath : path.join(app.getAppPath(), 'resources')
   return path.join(resourcePath, 'icon.png')
 }
 

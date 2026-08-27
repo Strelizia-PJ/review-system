@@ -1,6 +1,11 @@
 import type { ReactNode } from 'react'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
 } from '../ui/Dialog'
 import { Button } from '../ui/Button'
 

@@ -39,7 +39,8 @@ const dayPickerClassNames = {
   disabled: 'text-muted-foreground/40'
 }
 
-const navBtn = 'inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+const navBtn =
+  'inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 /** Custom header: ◀ caption ▶ on a single row, caption perfectly centered. */
 function CalendarNav({ onPreviousClick, onNextClick, previousMonth, nextMonth }: NavProps) {
@@ -75,7 +76,14 @@ function CalendarNav({ onPreviousClick, onNextClick, previousMonth, nextMonth }:
 }
 
 /** Token-styled single-date picker: trigger button + popover calendar. */
-export function DatePicker({ value, onChange, min, max, placeholder = '选择日期', className }: DatePickerProps) {
+export function DatePicker({
+  value,
+  onChange,
+  min,
+  max,
+  placeholder = '选择日期',
+  className
+}: DatePickerProps) {
   const [open, setOpen] = useState(false)
   const selected = value ? new Date(`${value}T00:00:00`) : undefined
   const disabled: Matcher[] = []

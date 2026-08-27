@@ -42,7 +42,8 @@ export function previewInterval(
   if (!cardState) return 1
   try {
     const card = { ...createEmptyCard(), ...JSON.parse(cardState) }
-    const rating = quality === 1 ? Rating.Again : quality === 2 ? Rating.Hard : quality === 3 ? Rating.Good : Rating.Easy
+    const rating =
+      quality === 1 ? Rating.Again : quality === 2 ? Rating.Hard : quality === 3 ? Rating.Good : Rating.Easy
     const preview = previewScheduler.repeat(card, new Date())
     const entry = preview[rating]
     return Math.min(Math.max(entry?.card?.scheduled_days ?? 1, 1), effectiveCap)

@@ -9,7 +9,12 @@ import { Button } from '../ui/Button'
 import { DatePicker } from '../ui/DatePicker'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/Select'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
 } from '../ui/Dialog'
 import { ErrorBar } from '../shared/Bars'
 import EmptyState from '../shared/EmptyState'
@@ -51,8 +56,11 @@ export default function ScheduleManagePage() {
     // Guard for non-Electron (browser preview) environments
     const settingsApi = window.electronAPI?.settings
     if (settingsApi) {
-      settingsApi.get(GLOBAL_MAX_INTERVAL_KEY)
-        .then(v => { if (v) setGlobalInput(v) })
+      settingsApi
+        .get(GLOBAL_MAX_INTERVAL_KEY)
+        .then(v => {
+          if (v) setGlobalInput(v)
+        })
         .catch(() => {})
     }
   }, [])
@@ -103,16 +111,16 @@ export default function ScheduleManagePage() {
   }
 
   const today = dayjs().format('YYYY-MM-DD')
-  const filtered = items.filter(kp =>
-    !keyword || kp.content.toLowerCase().includes(keyword.toLowerCase())
-  )
+  const filtered = items.filter(kp => !keyword || kp.content.toLowerCase().includes(keyword.toLowerCase()))
   const sorted = [...filtered].sort((a, b) => {
-    const va = sortBy === 'next_review'
-      ? (a.next_review_date || '9999-12-31')
-      : (a.learn_date || a.created_at.substring(0, 10))
-    const vb = sortBy === 'next_review'
-      ? (b.next_review_date || '9999-12-31')
-      : (b.learn_date || b.created_at.substring(0, 10))
+    const va =
+      sortBy === 'next_review'
+        ? a.next_review_date || '9999-12-31'
+        : a.learn_date || a.created_at.substring(0, 10)
+    const vb =
+      sortBy === 'next_review'
+        ? b.next_review_date || '9999-12-31'
+        : b.learn_date || b.created_at.substring(0, 10)
     if (va < vb) return asc ? -1 : 1
     if (va > vb) return asc ? 1 : -1
     return 0
@@ -140,7 +148,8 @@ export default function ScheduleManagePage() {
           {globalMsg && <span className="text-xs text-primary">{globalMsg}</span>}
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          全局上限对所有知识点生效（默认 {DEFAULT_MAX_REVIEW_INTERVAL_DAYS} 天）；列表中可给个别知识点设更小的单点上限，实际生效取两者较小值。
+          全局上限对所有知识点生效（默认 {DEFAULT_MAX_REVIEW_INTERVAL_DAYS}{' '}
+          天）；列表中可给个别知识点设更小的单点上限，实际生效取两者较小值。
         </p>
       </div>
 
@@ -168,10 +177,14 @@ export default function ScheduleManagePage() {
           </SelectTrigger>
           <SelectContent>
             {SORT_OPTIONS.map(opt => (
-              <SelectItem key={`${opt.key}-asc`} value={`${opt.key}-asc`}>{opt.label} ↑</SelectItem>
+              <SelectItem key={`${opt.key}-asc`} value={`${opt.key}-asc`}>
+                {opt.label} ↑
+              </SelectItem>
             ))}
             {SORT_OPTIONS.map(opt => (
-              <SelectItem key={`${opt.key}-desc`} value={`${opt.key}-desc`}>{opt.label} ↓</SelectItem>
+              <SelectItem key={`${opt.key}-desc`} value={`${opt.key}-desc`}>
+                {opt.label} ↓
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -185,25 +198,35 @@ export default function ScheduleManagePage() {
       ) : (
         <div className="space-y-2">
           {sorted.map(kp => (
-            <div
-              key={kp.id}
-              className="rounded-lg border border-border bg-card p-3 transition-colors"
-            >
+            <div key={kp.id} className="rounded-lg border border-border bg-card p-3 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <p
                     className="cursor-pointer truncate text-sm text-foreground transition-colors hover:text-primary"
                     onClick={() => select(kp.id)}
                     title="点击查看详情"
-                  >{kp.content}</p>
+                  >
+                    {kp.content}
+                  </p>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                    <span className={kp.next_review_date && kp.next_review_date < today ? 'font-medium text-destructive' : 'text-muted-foreground'}>
+                    <span
+                      className={
+                        kp.next_review_date && kp.next_review_date < today
+                          ? 'font-medium text-destructive'
+                          : 'text-muted-foreground'
+                      }
+                    >
                       下次复习: {kp.next_review_date || '无排期'}
                     </span>
                     <span className="text-border">|</span>
                     <span className="text-muted-foreground">
-                      上限: {kp.max_interval_days !== null ? `${kp.max_interval_days} 天` : `全局 ${kp.effective_max_interval_days} 天`}
-                      {kp.max_interval_days !== null && kp.max_interval_days > kp.effective_max_interval_days && '（受全局约束）'}
+                      上限:{' '}
+                      {kp.max_interval_days !== null
+                        ? `${kp.max_interval_days} 天`
+                        : `全局 ${kp.effective_max_interval_days} 天`}
+                      {kp.max_interval_days !== null &&
+                        kp.max_interval_days > kp.effective_max_interval_days &&
+                        '（受全局约束）'}
                     </span>
                   </div>
                 </div>
@@ -245,22 +268,37 @@ export default function ScheduleManagePage() {
       {reviewNowFor && (
         <ConfirmDialog
           open
-          onOpenChange={o => { if (!o) setReviewNowFor(null) }}
+          onOpenChange={o => {
+            if (!o) setReviewNowFor(null)
+          }}
           title="提前复习"
           description={`把「${reviewNowFor.content.length > 20 ? reviewNowFor.content.slice(0, 20) + '...' : reviewNowFor.content}」的下次复习（${reviewNowFor.next_review_date}）拉到今天？记忆状态不变，进入今日复习正常评分即可。`}
           confirmText="拉到今天"
-          onConfirm={() => { reschedule(reviewNowFor.id, today); setReviewNowFor(null) }}
+          onConfirm={() => {
+            reschedule(reviewNowFor.id, today)
+            setReviewNowFor(null)
+          }}
         />
       )}
 
       {/* Per-KP max interval dialog — mounted only while open */}
       {capDialogFor && (
-        <Dialog open onOpenChange={open => { if (!open) setCapDialogFor(null) }}>
+        <Dialog
+          open
+          onOpenChange={open => {
+            if (!open) setCapDialogFor(null)
+          }}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>单点间隔上限</DialogTitle>
               <DialogDescription>
-                「{capDialogFor.content.length > 20 ? capDialogFor.content.slice(0, 20) + '...' : capDialogFor.content}」单独的间隔上限（当前全局上限 {capDialogFor.effective_max_interval_days} 天）。留空 = 跟随全局。
+                「
+                {capDialogFor.content.length > 20
+                  ? capDialogFor.content.slice(0, 20) + '...'
+                  : capDialogFor.content}
+                」单独的间隔上限（当前全局上限 {capDialogFor.effective_max_interval_days} 天）。留空 =
+                跟随全局。
               </DialogDescription>
             </DialogHeader>
             <Input
@@ -275,8 +313,12 @@ export default function ScheduleManagePage() {
               单点上限只能比全局更严格：实际生效取两者较小值；已排期超出新上限的复习会自动前移。
             </p>
             <DialogFooter>
-              <Button variant="outline" size="sm" onClick={() => setCapDialogFor(null)}>取消</Button>
-              <Button size="sm" onClick={confirmCap}>保存</Button>
+              <Button variant="outline" size="sm" onClick={() => setCapDialogFor(null)}>
+                取消
+              </Button>
+              <Button size="sm" onClick={confirmCap}>
+                保存
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -284,12 +326,22 @@ export default function ScheduleManagePage() {
 
       {/* Reschedule dialog — mounted only while open */}
       {dateDialogFor && (
-        <Dialog open onOpenChange={open => { if (!open) setDateDialogFor(null) }}>
+        <Dialog
+          open
+          onOpenChange={open => {
+            if (!open) setDateDialogFor(null)
+          }}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>修改下次复习</DialogTitle>
               <DialogDescription>
-                「{dateDialogFor.content.length > 20 ? dateDialogFor.content.slice(0, 20) + '...' : dateDialogFor.content}」下次复习日期（当前 {dateDialogFor.next_review_date || '无排期'}）。只移动日期，不改记忆状态。
+                「
+                {dateDialogFor.content.length > 20
+                  ? dateDialogFor.content.slice(0, 20) + '...'
+                  : dateDialogFor.content}
+                」下次复习日期（当前 {dateDialogFor.next_review_date || '无排期'}
+                ）。只移动日期，不改记忆状态。
               </DialogDescription>
             </DialogHeader>
             <div className="mb-2 flex gap-1.5">
@@ -314,8 +366,12 @@ export default function ScheduleManagePage() {
             </div>
             <DatePicker value={dateInput} min={today} onChange={setDateInput} />
             <DialogFooter>
-              <Button variant="outline" size="sm" onClick={() => setDateDialogFor(null)}>取消</Button>
-              <Button size="sm" disabled={!dateInput} onClick={confirmReschedule}>确认</Button>
+              <Button variant="outline" size="sm" onClick={() => setDateDialogFor(null)}>
+                取消
+              </Button>
+              <Button size="sm" disabled={!dateInput} onClick={confirmReschedule}>
+                确认
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

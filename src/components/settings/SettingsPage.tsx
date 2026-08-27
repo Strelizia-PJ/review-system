@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Sun, Moon, Monitor, Download, Upload } from 'lucide-react'
+import { Sun, Moon, Monitor, Download, Upload, RefreshCw, ExternalLink } from 'lucide-react'
 import { useTheme, type ThemeMode } from '../../hooks/useTheme'
 import { Switch } from '../ui/Switch'
 import { Button } from '../ui/Button'
@@ -20,15 +20,40 @@ export default function SettingsPage() {
   const [dataErr, setDataErr] = useState<string | null>(null)
   const [importConfirm, setImportConfirm] = useState(false)
 
+  // About & update state
+  const [version, setVersion] = useState('')
+  const [platform, setPlatform] = useState('')
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
+  const isMac = platform === 'darwin'
+
+  useEffect(() => {
+    window.electronAPI?.update
+      .getVersion()
+      .then(setVersion)
+      .catch(() => {})
+    window.electronAPI?.update
+      .getPlatform()
+      .then(setPlatform)
+      .catch(() => {})
+    const off = window.electronAPI?.update.onStatus(setUpdateStatus)
+    return () => off?.()
+  }, [])
+
   const handleImport = async () => {
     const r = await window.electronAPI?.data.import()
     setDataErr(r?.error ? '导入失败' : null)
     setDataMsg(r?.success ? '已导入，重启应用后生效' : null)
-    setTimeout(() => { setDataMsg(null); setDataErr(null) }, 3000)
+    setTimeout(() => {
+      setDataMsg(null)
+      setDataErr(null)
+    }, 3000)
   }
 
   useEffect(() => {
-    window.electronAPI?.autoStart.isEnabled().then(setAutoStartEnabled).catch(() => {})
+    window.electronAPI?.autoStart
+      .isEnabled()
+      .then(setAutoStartEnabled)
+      .catch(() => {})
   }, [])
 
   const handleAutoStartToggle = async (next: boolean) => {
@@ -93,11 +118,7 @@ export default function SettingsPage() {
             <Upload className="h-4 w-4" />
             导出数据
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setImportConfirm(true)}
-          >
+          <Button variant="outline" size="sm" onClick={() => setImportConfirm(true)}>
             <Download className="h-4 w-4" />
             导入数据
           </Button>
@@ -109,6 +130,67 @@ export default function SettingsPage() {
         {dataErr && <ErrorBar className="mt-3">{dataErr}</ErrorBar>}
       </section>
 
+      {/* About & update */}
+      <section className="rounded-lg border border-border bg-card p-4 transition-colors">
+        <h3 className="mb-3 text-sm font-medium text-foreground">关于与更新</h3>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm text-foreground">芝士学爆 {version || '…'}</span>
+          {isMac ? (
+            <Button variant="outline" size="sm" onClick={() => window.electronAPI?.update.openRelease()}>
+              <ExternalLink className="h-4 w-4" />
+              到下载页检查更新
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={updateStatus?.event === 'checking' || updateStatus?.event === 'downloading'}
+              onClick={() => window.electronAPI?.update.check()}
+            >
+              <RefreshCw className="h-4 w-4" />
+              {updateStatus?.event === 'checking' ? '检查中...' : '检查更新'}
+            </Button>
+          )}
+        </div>
+
+        {!isMac && updateStatus && (
+          <div className="mt-3 text-sm">
+            {updateStatus.event === 'available' && (
+              <p className="text-primary">发现新版本 v{updateStatus.version}，正在下载...</p>
+            )}
+            {updateStatus.event === 'downloading' && (
+              <div className="flex items-center gap-3">
+                <div className="h-1.5 w-48 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${updateStatus.percent}%` }}
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground">{updateStatus.percent}%</span>
+              </div>
+            )}
+            {updateStatus.event === 'downloaded' && (
+              <div className="flex items-center gap-3">
+                <span className="text-primary">v{updateStatus.version} 已就绪</span>
+                <Button size="sm" onClick={() => window.electronAPI?.update.install()}>
+                  重启并安装
+                </Button>
+              </div>
+            )}
+            {updateStatus.event === 'not-available' && <p className="text-muted-foreground">已是最新版本</p>}
+            {updateStatus.event === 'error' && (
+              <p className="text-destructive">更新检查失败：{updateStatus.message}</p>
+            )}
+          </div>
+        )}
+
+        <p className="mt-2 text-xs text-muted-foreground">
+          {isMac
+            ? 'macOS 版本未签名，无法在线自动更新；新版本请到下载页手动获取（首次打开需右键→打开）。'
+            : 'Windows 版本在后台自动检查更新，下载完成后可一键安装。'}
+        </p>
+      </section>
+
       <ConfirmDialog
         open={importConfirm}
         onOpenChange={setImportConfirm}
@@ -116,7 +198,10 @@ export default function SettingsPage() {
         description="导入将覆盖当前的全部数据（知识点、复习记录、计划、统计），此操作不可撤销。确定继续吗？"
         confirmText="覆盖导入"
         variant="destructive"
-        onConfirm={() => { setImportConfirm(false); handleImport() }}
+        onConfirm={() => {
+          setImportConfirm(false)
+          handleImport()
+        }}
       />
     </div>
   )

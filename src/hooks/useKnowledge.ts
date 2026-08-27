@@ -88,9 +88,7 @@ export const useKnowledge = create<KnowledgeState>((set, get) => ({
     if (!api()) return
     set({ keyword, loading: true, error: null })
     try {
-      const items = keyword
-        ? await api()!.search(keyword)
-        : await api()!.list()
+      const items = keyword ? await api()!.search(keyword) : await api()!.list()
       set({ items, loading: false })
     } catch (e) {
       console.error('Failed to search knowledge points:', e)

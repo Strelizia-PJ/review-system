@@ -32,11 +32,7 @@ export default function TodayPanel() {
       {loading ? (
         <p className="py-8 text-center text-sm text-muted-foreground">加载中...</p>
       ) : allPending.length === 0 ? (
-        <EmptyState
-          icon="🎉"
-          title="今日没有需要复习的知识点"
-          description="去添加新知识吧"
-        />
+        <EmptyState icon="🎉" title="今日没有需要复习的知识点" description="去添加新知识吧" />
       ) : (
         <>
           <p className="text-sm text-muted-foreground">

@@ -2,6 +2,10 @@ appId: com.forgetting-curve.reminder
 productName: 芝士学爆
 directories:
   output: release
+publish:
+  provider: github
+  owner: Strelizia-PJ
+  repo: review-system
 files:
   - dist
   - dist-electron
@@ -19,4 +23,13 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
+mac:
+  icon: resources/icon.png
+  identity: null
+  category: public.app-category.education
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  artifactName: ${productName}-${version}-${arch}.${ext}
 npmRebuild: false
+compression: maximum

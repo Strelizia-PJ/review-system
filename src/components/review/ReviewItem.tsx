@@ -2,10 +2,21 @@ import { useState } from 'react'
 import dayjs from 'dayjs'
 import { CalendarClock } from 'lucide-react'
 import type { ReviewRecord, NavPage } from '../../types'
-import { QUALITY_LABELS, QUALITY_COLORS, previewInterval, getRetrievability, DEFAULT_MAX_REVIEW_INTERVAL_DAYS } from '../../constants'
+import {
+  QUALITY_LABELS,
+  QUALITY_COLORS,
+  previewInterval,
+  getRetrievability,
+  DEFAULT_MAX_REVIEW_INTERVAL_DAYS
+} from '../../constants'
 import { useKnowledge } from '../../hooks/useKnowledge'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
 } from '../ui/Dialog'
 import { Button } from '../ui/Button'
 import { DatePicker } from '../ui/DatePicker'
@@ -23,12 +34,16 @@ const QUICK_CUSTOM_DAYS = [1, 3, 7, 14]
 export default function ReviewItem({ item, overdue, onRate, source }: ReviewItemProps) {
   const select = useKnowledge(state => state.select)
   const r = getRetrievability(item.card_state)
-  const rColor = r !== null
-    ? r > 0.9 ? 'text-emerald-600 dark:text-emerald-400'
-    : r > 0.7 ? 'text-amber-600 dark:text-amber-400'
-    : r > 0.5 ? 'text-orange-600 dark:text-orange-400'
-    : 'text-red-600 dark:text-red-400'
-    : ''
+  const rColor =
+    r !== null
+      ? r > 0.9
+        ? 'text-emerald-600 dark:text-emerald-400'
+        : r > 0.7
+          ? 'text-amber-600 dark:text-amber-400'
+          : r > 0.5
+            ? 'text-orange-600 dark:text-orange-400'
+            : 'text-red-600 dark:text-red-400'
+      : ''
   const effectiveCap = item.effective_max_interval_days ?? DEFAULT_MAX_REVIEW_INTERVAL_DAYS
 
   // Custom-interval dialog state
@@ -59,32 +74,30 @@ export default function ReviewItem({ item, overdue, onRate, source }: ReviewItem
   }
 
   return (
-    <div className={cn(
-      'rounded-lg border p-4 transition-colors hover:shadow-sm',
-      overdue
-        ? 'border-destructive/40 bg-destructive/5'
-        : 'border-border bg-card'
-    )}>
+    <div
+      className={cn(
+        'rounded-lg border p-4 transition-colors hover:shadow-sm',
+        overdue ? 'border-destructive/40 bg-destructive/5' : 'border-border bg-card'
+      )}
+    >
       <div className="min-w-0 flex-1">
         <p
           className="cursor-pointer break-words text-sm text-foreground transition-colors hover:text-primary"
           onClick={() => select(item.knowledge_point_id, source)}
           title="点击查看详情"
-        >{item.content}</p>
+        >
+          {item.content}
+        </p>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           <span className={overdue ? 'font-medium text-destructive' : 'text-muted-foreground'}>
             计划复习: {item.schedule_date}
           </span>
           <span className="text-border">|</span>
-          <span className="text-muted-foreground">
-            第{item.stage}次复习
-          </span>
+          <span className="text-muted-foreground">第{item.stage}次复习</span>
           {r !== null && (
             <>
               <span className="text-border">|</span>
-              <span className={cn('font-medium', rColor)}>
-                记忆 {Math.round(r * 100)}%
-              </span>
+              <span className={cn('font-medium', rColor)}>记忆 {Math.round(r * 100)}%</span>
             </>
           )}
           {overdue && (
@@ -104,7 +117,10 @@ export default function ReviewItem({ item, overdue, onRate, source }: ReviewItem
             <button
               key={q}
               onClick={() => onRate(item.id, q)}
-              className={cn('flex-1 rounded-lg py-2 text-sm font-medium text-white transition-opacity hover:opacity-85', QUALITY_COLORS[q])}
+              className={cn(
+                'flex-1 rounded-lg py-2 text-sm font-medium text-white transition-opacity hover:opacity-85',
+                QUALITY_COLORS[q]
+              )}
               title={`${QUALITY_LABELS[q]} · ${previewInterval(item.card_state, q, effectiveCap)}天后`}
             >
               {QUALITY_LABELS[q]}
@@ -127,9 +143,7 @@ export default function ReviewItem({ item, overdue, onRate, source }: ReviewItem
           <DialogContent>
             <DialogHeader>
               <DialogTitle>自定义下次复习</DialogTitle>
-              <DialogDescription>
-                记忆状态仍按所选评分更新，仅本次复习时间用你指定的值。
-              </DialogDescription>
+              <DialogDescription>记忆状态仍按所选评分更新，仅本次复习时间用你指定的值。</DialogDescription>
             </DialogHeader>
 
             <p className="mb-1.5 text-xs font-medium text-foreground">评分</p>
@@ -155,7 +169,10 @@ export default function ReviewItem({ item, overdue, onRate, source }: ReviewItem
               {QUICK_CUSTOM_DAYS.map(d => (
                 <button
                   key={d}
-                  onClick={() => { setCustomDays(d); setCustomDate('') }}
+                  onClick={() => {
+                    setCustomDays(d)
+                    setCustomDate('')
+                  }}
                   className={cn(
                     'flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors',
                     !customDate && customDays === d
@@ -174,8 +191,12 @@ export default function ReviewItem({ item, overdue, onRate, source }: ReviewItem
             )}
 
             <DialogFooter>
-              <Button variant="outline" size="sm" onClick={() => setCustomOpen(false)}>取消</Button>
-              <Button size="sm" disabled={!customValid} onClick={confirmCustom}>确认</Button>
+              <Button variant="outline" size="sm" onClick={() => setCustomOpen(false)}>
+                取消
+              </Button>
+              <Button size="sm" disabled={!customValid} onClick={confirmCustom}>
+                确认
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

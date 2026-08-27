@@ -32,8 +32,17 @@ const levelColors: Record<number, string> = {
 
 export default function StudyStatsPage() {
   const {
-    monthStats, monthReviewStats, recent7Stats, monthYear, monthMonth, loading, error,
-    fetchAll, prevMonth, nextMonth, addBackfill
+    monthStats,
+    monthReviewStats,
+    recent7Stats,
+    monthYear,
+    monthMonth,
+    loading,
+    error,
+    fetchAll,
+    prevMonth,
+    nextMonth,
+    addBackfill
   } = useStudyStats()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
@@ -47,7 +56,9 @@ export default function StudyStatsPage() {
   const [backfillDate, setBackfillDate] = useState(dayjs().format('YYYY-MM-DD'))
   const [backfillMinutes, setBackfillMinutes] = useState(30)
 
-  useEffect(() => { fetchAll() }, [])
+  useEffect(() => {
+    fetchAll()
+  }, [])
 
   const formatTime = (min: number) => {
     if (min === 0) return '0min'
@@ -80,7 +91,7 @@ export default function StudyStatsPage() {
 
   const today = dayjs().format('YYYY-MM-DD')
   const selectedMinutes = selectedDate
-    ? monthStats?.days.find(d => d.date === selectedDate)?.minutes ?? 0
+    ? (monthStats?.days.find(d => d.date === selectedDate)?.minutes ?? 0)
     : 0
 
   const maxBarMinutes = recent7Stats ? Math.max(...recent7Stats.days.map(d => d.minutes), 1) : 1
@@ -98,13 +109,19 @@ export default function StudyStatsPage() {
 
             {/* Month nav */}
             <div className="mb-4 flex items-center justify-center gap-4">
-              <button onClick={prevMonth} className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+              <button
+                onClick={prevMonth}
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <span className="text-sm font-medium text-foreground">
                 {monthYear} 年 {monthMonth} 月
               </span>
-              <button onClick={nextMonth} className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+              <button
+                onClick={nextMonth}
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
@@ -154,7 +171,9 @@ export default function StudyStatsPage() {
               <div className="mt-3 text-center text-sm text-foreground">
                 {selectedDate} — <span className="font-medium">{formatHours(selectedMinutes)}</span>
                 {(reviewMap[selectedDate] ?? 0) > 0 && (
-                  <span className="ml-2">· 完成 <span className="font-medium text-primary">{reviewMap[selectedDate]} 条</span>复习</span>
+                  <span className="ml-2">
+                    · 完成 <span className="font-medium text-primary">{reviewMap[selectedDate]} 条</span>复习
+                  </span>
                 )}
               </div>
             )}
@@ -169,7 +188,8 @@ export default function StudyStatsPage() {
             {monthStats && (
               <div className="mt-2 flex justify-between border-t border-border pt-2 text-sm">
                 <span className="text-muted-foreground">
-                  本月总计: <span className="font-medium text-foreground">{formatTime(monthStats.total)}</span>
+                  本月总计:{' '}
+                  <span className="font-medium text-foreground">{formatTime(monthStats.total)}</span>
                 </span>
                 <span className="text-muted-foreground">
                   复习: <span className="font-medium text-primary">{monthReviewStats?.total ?? 0} 条</span>
@@ -186,7 +206,7 @@ export default function StudyStatsPage() {
             <h3 className="mb-3 text-sm font-medium text-foreground">近7天</h3>
             {recent7Stats && (
               <div className="space-y-2">
-                {recent7Stats.days.map((day) => (
+                {recent7Stats.days.map(day => (
                   <div key={day.date} className="flex items-center gap-3">
                     <span className="w-14 shrink-0 text-xs text-muted-foreground">
                       {dayjs(day.date).format('M/D')}
@@ -204,7 +224,8 @@ export default function StudyStatsPage() {
                 ))}
                 <div className="mt-2 border-t border-border pt-2">
                   <span className="text-sm text-muted-foreground">
-                    近7天平均: <span className="font-medium text-foreground">{formatTime(recent7Stats.avg)}</span>
+                    近7天平均:{' '}
+                    <span className="font-medium text-foreground">{formatTime(recent7Stats.avg)}</span>
                   </span>
                 </div>
               </div>
@@ -228,7 +249,9 @@ export default function StudyStatsPage() {
                 <label className="mb-1 block text-xs text-muted-foreground">时长</label>
                 <div className="flex items-center gap-1">
                   <Input
-                    type="number" min={1} max={1440}
+                    type="number"
+                    min={1}
+                    max={1440}
                     value={backfillMinutes}
                     onChange={e => setBackfillMinutes(parseInt(e.target.value) || 30)}
                     className="h-8 w-20 text-center text-sm"

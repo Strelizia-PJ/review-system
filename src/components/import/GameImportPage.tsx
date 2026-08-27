@@ -27,9 +27,12 @@ export default function GameImportPage() {
 
   // Load saved path on mount
   useEffect(() => {
-    window.electronAPI?.settings.get('game_import_path').then(val => {
-      if (val) setDirPath(val)
-    }).catch(() => {})
+    window.electronAPI?.settings
+      .get('game_import_path')
+      .then(val => {
+        if (val) setDirPath(val)
+      })
+      .catch(() => {})
   }, [])
 
   const handlePathChange = (value: string) => {
@@ -99,9 +102,7 @@ export default function GameImportPage() {
     return (min / 60).toFixed(1) + 'h'
   }
 
-  const selectedTotal = days
-    .filter(d => selectedDates.has(d.date))
-    .reduce((sum, d) => sum + d.gameMinutes, 0)
+  const selectedTotal = days.filter(d => selectedDates.has(d.date)).reduce((sum, d) => sum + d.gameMinutes, 0)
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -139,14 +140,9 @@ export default function GameImportPage() {
         <>
           <div className="space-y-2 rounded-lg border border-border bg-card p-4 transition-colors">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-foreground">
-                扫描结果（{days.length} 天）
-              </h3>
+              <h3 className="text-sm font-medium text-foreground">扫描结果（{days.length} 天）</h3>
               <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-                <Checkbox
-                  checked={selectedDates.size === days.length}
-                  onCheckedChange={toggleAll}
-                />
+                <Checkbox checked={selectedDates.size === days.length} onCheckedChange={toggleAll} />
                 全选
               </label>
             </div>
@@ -163,9 +159,7 @@ export default function GameImportPage() {
                   key={day.date}
                   className={cn(
                     'grid cursor-pointer grid-cols-12 items-center gap-2 rounded-md px-1 py-1.5 text-sm transition-colors',
-                    selectedDates.has(day.date)
-                      ? 'bg-primary/10'
-                      : 'hover:bg-accent'
+                    selectedDates.has(day.date) ? 'bg-primary/10' : 'hover:bg-accent'
                   )}
                 >
                   <span className="col-span-2">
@@ -189,9 +183,7 @@ export default function GameImportPage() {
               <span className="text-muted-foreground">
                 已选 {selectedDates.size} 天，共 {formatHours(selectedTotal)}
               </span>
-              <span className="text-muted-foreground">
-                扫描总计 {formatHours(totalMinutes)}
-              </span>
+              <span className="text-muted-foreground">扫描总计 {formatHours(totalMinutes)}</span>
             </div>
           </div>
 
@@ -199,7 +191,11 @@ export default function GameImportPage() {
             <Button onClick={() => handleImport(false)} disabled={selectedDates.size === 0 || importing}>
               {importing ? '导入中...' : '导入选中记录'}
             </Button>
-            <Button onClick={() => setOverwriteConfirm(true)} disabled={importing} className="bg-emerald-600 text-white hover:bg-emerald-700">
+            <Button
+              onClick={() => setOverwriteConfirm(true)}
+              disabled={importing}
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+            >
               全部覆盖
             </Button>
           </div>
@@ -213,7 +209,10 @@ export default function GameImportPage() {
         description={`将用游戏存档记录覆盖全部 ${days.length} 天的本地学习时长，此操作不可撤销。确定继续吗？`}
         confirmText="覆盖导入"
         variant="destructive"
-        onConfirm={() => { setOverwriteConfirm(false); handleImport(true) }}
+        onConfirm={() => {
+          setOverwriteConfirm(false)
+          handleImport(true)
+        }}
       />
     </div>
   )

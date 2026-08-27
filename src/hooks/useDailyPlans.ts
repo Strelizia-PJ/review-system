@@ -13,7 +13,7 @@ interface DailyPlanState {
   remove: (planId: number) => Promise<void>
 }
 
-export const useDailyPlans = create<DailyPlanState>((set) => ({
+export const useDailyPlans = create<DailyPlanState>(set => ({
   items: [],
   loading: false,
   error: null,

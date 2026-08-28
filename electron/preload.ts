@@ -48,6 +48,13 @@ const api = {
     update: (id: number, content: string) => ipcRenderer.invoke('mistake:update', id, content),
     remove: (id: number) => ipcRenderer.invoke('mistake:delete', id)
   },
+  mistakeType: {
+    add: (content: string) => ipcRenderer.invoke('mistakeType:add', content),
+    list: () => ipcRenderer.invoke('mistakeType:list'),
+    increment: (id: number) => ipcRenderer.invoke('mistakeType:increment', id),
+    update: (id: number, content: string) => ipcRenderer.invoke('mistakeType:update', id, content),
+    remove: (id: number) => ipcRenderer.invoke('mistakeType:delete', id)
+  },
   image: {
     save: (kpId: number, fileData: Uint8Array, originalName: string) =>
       ipcRenderer.invoke('image:save', kpId, fileData, originalName)

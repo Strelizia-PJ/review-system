@@ -139,6 +139,12 @@ const migrations: Record<number, () => void> = {
     if (!Array.isArray((data as any).mistake_points)) {
       ;(data as any).mistake_points = []
     }
+  },
+  14: () => {
+    const data = getData()
+    if (!Array.isArray((data as any).mistake_types)) {
+      ;(data as any).mistake_types = []
+    }
   }
 }
 

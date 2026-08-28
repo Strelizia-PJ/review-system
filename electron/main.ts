@@ -32,7 +32,12 @@ import {
   listMistakePoints,
   incrementMistakePoint,
   updateMistakePoint,
-  deleteMistakePoint
+  deleteMistakePoint,
+  addMistakeType,
+  listMistakeTypes,
+  incrementMistakeType,
+  updateMistakeType,
+  deleteMistakeType
 } from './database/queries'
 import { scanGameSaves, applyGameData } from './database/game-import'
 import { saveImage, deleteImages, deleteOrphanImages } from './database/images'
@@ -245,6 +250,47 @@ function setupIPC() {
       deleteMistakePoint(id)
     } catch (e) {
       console.error('Delete mistake point failed:', e)
+      throw e
+    }
+  })
+
+  // Mistake Types
+  ipcMain.handle('mistakeType:add', (_event, content: string) => {
+    try {
+      return addMistakeType(content.trim().slice(0, 5000))
+    } catch (e) {
+      console.error('Add mistake type failed:', e)
+      throw e
+    }
+  })
+
+  ipcMain.handle('mistakeType:list', () => {
+    return listMistakeTypes()
+  })
+
+  ipcMain.handle('mistakeType:increment', (_event, id: number) => {
+    try {
+      incrementMistakeType(id)
+    } catch (e) {
+      console.error('Increment mistake type failed:', e)
+      throw e
+    }
+  })
+
+  ipcMain.handle('mistakeType:update', (_event, id: number, content: string) => {
+    try {
+      updateMistakeType(id, content.trim().slice(0, 5000))
+    } catch (e) {
+      console.error('Update mistake type failed:', e)
+      throw e
+    }
+  })
+
+  ipcMain.handle('mistakeType:delete', (_event, id: number) => {
+    try {
+      deleteMistakeType(id)
+    } catch (e) {
+      console.error('Delete mistake type failed:', e)
       throw e
     }
   })

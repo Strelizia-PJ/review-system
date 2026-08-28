@@ -33,6 +33,9 @@ export interface MistakePointRow {
   updated_at: string
 }
 
+/** Mistake-type catalog entries share the exact shape of mistake points. */
+export type MistakeTypeRow = MistakePointRow
+
 export interface AppData {
   schema_version: number
   knowledge_points: KnowledgePointRow[]
@@ -41,6 +44,7 @@ export interface AppData {
   daily_plan_completions: DailyPlanCompletionRow[]
   study_sessions: StudySessionRow[]
   mistake_points: MistakePointRow[]
+  mistake_types: MistakeTypeRow[]
   settings: Record<string, string>
 }
 
@@ -69,7 +73,7 @@ export interface ReviewRecordRow {
 }
 
 /** Bump when adding a migration in migrations.ts; migrations run up to this version. */
-export const CURRENT_SCHEMA_VERSION = 13
+export const CURRENT_SCHEMA_VERSION = 14
 
 const DEFAULT_DATA: AppData = {
   schema_version: CURRENT_SCHEMA_VERSION,
@@ -79,6 +83,7 @@ const DEFAULT_DATA: AppData = {
   daily_plan_completions: [],
   study_sessions: [],
   mistake_points: [],
+  mistake_types: [],
   settings: {}
 }
 
@@ -90,6 +95,7 @@ let nextPlanId = 1
 let nextCompletionId = 1
 let nextSessionId = 1
 let nextMistakeId = 1
+let nextMistakeTypeId = 1
 
 export function getDbPath(): string {
   if (!dbPath) {
@@ -145,6 +151,9 @@ export function loadData(): AppData {
   if (!Array.isArray(data.mistake_points)) {
     data.mistake_points = []
   }
+  if (!Array.isArray(data.mistake_types)) {
+    data.mistake_types = []
+  }
 
   // Initialize ID counters (filter out NaN/corrupted IDs)
   const validNum = (n: unknown): n is number => typeof n === 'number' && !isNaN(n)
@@ -172,6 +181,10 @@ export function loadData(): AppData {
   if (data!.mistake_points) {
     const mNext = maxId(data!.mistake_points)
     if (mNext !== undefined) nextMistakeId = mNext
+  }
+  if (data!.mistake_types) {
+    const mtNext = maxId(data!.mistake_types)
+    if (mtNext !== undefined) nextMistakeTypeId = mtNext
   }
 
   return data!
@@ -237,4 +250,8 @@ export function getNextSessionId(): number {
 
 export function getNextMistakeId(): number {
   return nextMistakeId++
+}
+
+export function getNextMistakeTypeId(): number {
+  return nextMistakeTypeId++
 }

@@ -8,6 +8,7 @@ export const NAV_ORDER: NavPage[] = [
   'knowledge',
   'today',
   'mistakes',
+  'mistake-types',
   'manage',
   'plans',
   'pomodoro',

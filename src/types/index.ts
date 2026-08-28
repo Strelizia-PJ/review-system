@@ -52,6 +52,7 @@ export type NavPage =
   | 'knowledge'
   | 'today'
   | 'mistakes'
+  | 'mistake-types'
   | 'manage'
   | 'plans'
   | 'pomodoro'

@@ -7,9 +7,16 @@ import {
   getNextPlanId,
   getNextCompletionId,
   getNextSessionId,
-  getNextMistakeId
+  getNextMistakeId,
+  getNextMistakeTypeId
 } from './connection'
-import type { KnowledgePointRow, ReviewRecordRow, DailyPlanRow, MistakePointRow } from './connection'
+import type {
+  KnowledgePointRow,
+  ReviewRecordRow,
+  DailyPlanRow,
+  MistakePointRow,
+  MistakeTypeRow
+} from './connection'
 import { createEmptyCard, fsrs, Rating } from 'ts-fsrs'
 
 /** Default global cap on FSRS review interval (days), used when settings has no override. */
@@ -594,6 +601,50 @@ export function updateMistakePoint(id: number, content: string): void {
 export function deleteMistakePoint(id: number): void {
   const data = getData()
   data.mistake_points = data.mistake_points.filter(m => m.id !== id)
+  saveData()
+}
+
+// ---- Mistake Types ----
+
+export function addMistakeType(content: string): { id: number } {
+  const data = getData()
+  const now = dayjs().format('YYYY-MM-DD HH:mm:ss')
+  const id = getNextMistakeTypeId()
+  data.mistake_types.push({ id, content, count: 1, created_at: now, updated_at: now })
+  saveData()
+  return { id }
+}
+
+/** List mistake types — higher count first, ties broken by newest. */
+export function listMistakeTypes(): MistakeTypeRow[] {
+  const data = getData()
+  return [...data.mistake_types].sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count
+    return b.created_at.localeCompare(a.created_at)
+  })
+}
+
+export function incrementMistakeType(id: number): void {
+  const data = getData()
+  const mt = data.mistake_types.find(m => m.id === id)
+  if (!mt) throw new Error('Mistake type not found')
+  mt.count += 1
+  mt.updated_at = dayjs().format('YYYY-MM-DD HH:mm:ss')
+  saveData()
+}
+
+export function updateMistakeType(id: number, content: string): void {
+  const data = getData()
+  const mt = data.mistake_types.find(m => m.id === id)
+  if (!mt) throw new Error('Mistake type not found')
+  mt.content = content
+  mt.updated_at = dayjs().format('YYYY-MM-DD HH:mm:ss')
+  saveData()
+}
+
+export function deleteMistakeType(id: number): void {
+  const data = getData()
+  data.mistake_types = data.mistake_types.filter(m => m.id !== id)
   saveData()
 }
 

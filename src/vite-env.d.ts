@@ -76,6 +76,13 @@ declare global {
         update: (id: number, content: string) => Promise<void>
         remove: (id: number) => Promise<void>
       }
+      mistakeType: {
+        add: (content: string) => Promise<{ id: number }>
+        list: () => Promise<MistakePoint[]>
+        increment: (id: number) => Promise<void>
+        update: (id: number, content: string) => Promise<void>
+        remove: (id: number) => Promise<void>
+      }
       image: {
         save: (kpId: number, fileData: Uint8Array, originalName: string) => Promise<string>
       }

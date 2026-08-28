@@ -78,7 +78,7 @@ export default function ReviewItem({ item, overdue, onRate, source }: ReviewItem
   return (
     <div
       className={cn(
-        'rounded-lg border p-4 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:shadow-card-hover',
+        'relative rounded-lg border p-4 transition-all duration-200 motion-safe:hover:-translate-y-0.5 hover:shadow-card-hover',
         overdue ? 'border-destructive/40 bg-destructive/5' : 'border-border bg-card hover:border-primary/30'
       )}
     >
@@ -113,7 +113,6 @@ export default function ReviewItem({ item, overdue, onRate, source }: ReviewItem
 
       {/* FSRS quality rating buttons */}
       <div className="relative mt-3 border-t border-border pt-3">
-        <p className="mb-2 text-xs text-muted-foreground">评价:</p>
         <div className="flex gap-1.5">
           {[1, 2, 3, 4].map(q => (
             <button
@@ -140,15 +139,17 @@ export default function ReviewItem({ item, overdue, onRate, source }: ReviewItem
             自定
           </button>
         </div>
-
-        {/* Success flash — one-shot ring burst after a rating is submitted */}
-        {flash && (
-          <span
-            className="pointer-events-none absolute inset-x-0 top-0 h-full rounded-lg ring-2 ring-emerald-400/70 motion-safe:animate-ping"
-            style={{ animationDuration: '0.45s', animationIterationCount: 1 }}
-          />
-        )}
       </div>
+
+      {/* Success flash — one-shot ripple expanding from the card center */}
+      {flash && (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden rounded-lg">
+          <span
+            className="h-12 w-12 rounded-full border-2 border-emerald-400/80 motion-safe:animate-ping"
+            style={{ animationDuration: '0.9s', animationIterationCount: 1 }}
+          />
+        </span>
+      )}
 
       {/* Custom next-review-time dialog — mounted only while open */}
       {customOpen && (

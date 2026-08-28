@@ -8,6 +8,7 @@ import DetailPanel from '../knowledge/DetailPanel'
 import TodayPanel from '../review/TodayPanel'
 import StatsPanel from '../review/StatsPanel'
 import MistakesPage from '../mistakes/MistakesPage'
+import MistakeTypesPage from '../mistakes/MistakeTypesPage'
 import ScheduleManagePage from '../manage/ScheduleManagePage'
 import DailyPlansPage from '../plans/DailyPlansPage'
 import PomodoroPage from '../pomodoro/PomodoroPage'
@@ -84,6 +85,8 @@ export default function AppLayout() {
         return <TodayPanel />
       case 'mistakes':
         return <MistakesPage />
+      case 'mistake-types':
+        return <MistakeTypesPage />
       case 'manage':
         return <ScheduleManagePage />
       case 'stats':

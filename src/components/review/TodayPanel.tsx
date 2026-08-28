@@ -97,18 +97,6 @@ export default function TodayPanel() {
             <div key={i} className="skeleton motion-safe:animate-shimmer h-[104px] rounded-lg opacity-70" />
           ))}
         </div>
-      ) : allPending.length === 0 ? (
-        <>
-          {/* Overview stays visible after clearing everything */}
-          <StatChipsRow
-            total={allPending.length}
-            overdue={overdueCount}
-            streakCurrent={streak.current}
-            streakLabel={streakLabel}
-            streakActive={streak.activeToday}
-          />
-          <EmptyState icon="🎉" title="太棒了，今日复习已全部完成！" description="去添加新知识吧" />
-        </>
       ) : (
         <>
           <StatChipsRow
@@ -119,7 +107,10 @@ export default function TodayPanel() {
             streakActive={streak.activeToday}
           />
 
-          <div>
+          {/* AnimatePresence must stay mounted even when the list drains to
+              zero — unmounting it with the branch would kill the last card's
+              exit animation and its success ripple mid-play */}
+          <div className="space-y-6">
             <AnimatePresence mode="popLayout" initial={false}>
               {allPending.map((item, i) => (
                 <motion.div
@@ -129,13 +120,22 @@ export default function TodayPanel() {
                   custom={i}
                   initial="initial"
                   animate="animate"
-                  exit="exit"
+                  exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.45, ease: 'easeIn' } }}
                 >
                   <ReviewItem item={item} overdue={item.schedule_date < today} onRate={rate} source="today" />
                 </motion.div>
               ))}
             </AnimatePresence>
           </div>
+
+          {allPending.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { delay: 0.4, duration: 0.3 } }}
+            >
+              <EmptyState icon="🎉" title="太棒了，今日复习已全部完成！" description="去添加新知识吧" />
+            </motion.div>
+          )}
         </>
       )}
     </div>

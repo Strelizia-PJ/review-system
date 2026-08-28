@@ -99,6 +99,9 @@ declare global {
         check: () => Promise<void>
         install: () => Promise<void>
         openRelease: () => Promise<void>
+        /** 'off' = direct connection, otherwise the active mirror prefix */
+        getMirror: () => Promise<string>
+        setMirror: (value: string) => Promise<void>
         onStatus: (callback: (status: UpdateStatus) => void) => () => void
       }
       autoStart: {

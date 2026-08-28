@@ -73,6 +73,8 @@ const api = {
     check: () => ipcRenderer.invoke('update:check'),
     install: () => ipcRenderer.invoke('update:install'),
     openRelease: () => ipcRenderer.invoke('update:open-release'),
+    getMirror: () => ipcRenderer.invoke('update:get-mirror'),
+    setMirror: (value: string) => ipcRenderer.invoke('update:set-mirror', value),
     onStatus: (callback: (status: unknown) => void) => {
       const listener = (_event: unknown, status: unknown) => callback(status)
       ipcRenderer.on('update:status', listener)

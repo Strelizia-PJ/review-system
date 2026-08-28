@@ -3,6 +3,8 @@ import { Sun, Moon, Monitor, Download, Upload, RefreshCw, ExternalLink } from 'l
 import { useTheme, type ThemeMode } from '../../hooks/useTheme'
 import { Switch } from '../ui/Switch'
 import { Button } from '../ui/Button'
+import { Input } from '../ui/Input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/Select'
 import { ErrorBar, SuccessBar } from '../shared/Bars'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { cn } from '../../utils/cn'
@@ -12,6 +14,15 @@ const themeOptions: { key: ThemeMode; label: string; icon: typeof Sun }[] = [
   { key: 'dark', label: '深色', icon: Moon },
   { key: 'system', label: '跟随系统', icon: Monitor }
 ]
+
+/** Preset GitHub acceleration mirrors for update downloads */
+const MIRROR_PRESETS = [
+  { label: 'ghfast.top', value: 'https://ghfast.top/' },
+  { label: 'gh-proxy.com', value: 'https://gh-proxy.com/' },
+  { label: 'mirror.ghproxy.com', value: 'https://mirror.ghproxy.com/' },
+  { label: 'ghproxy.net', value: 'https://ghproxy.net/' }
+]
+const DEFAULT_MIRROR = MIRROR_PRESETS[0].value
 
 export default function SettingsPage() {
   const { mode, setMode } = useTheme()
@@ -25,6 +36,10 @@ export default function SettingsPage() {
   const [platform, setPlatform] = useState('')
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
   const isMac = platform === 'darwin'
+  // Update download acceleration: 'off' or a mirror prefix URL
+  const [mirror, setMirror] = useState(DEFAULT_MIRROR)
+  const [mirrorChoice, setMirrorChoice] = useState<string>(DEFAULT_MIRROR)
+  const [customMirror, setCustomMirror] = useState('')
 
   useEffect(() => {
     window.electronAPI?.update
@@ -35,9 +50,47 @@ export default function SettingsPage() {
       .getPlatform()
       .then(setPlatform)
       .catch(() => {})
+    window.electronAPI?.update
+      .getMirror()
+      .then(value => {
+        if (value === 'off') {
+          setMirror('off')
+          return
+        }
+        setMirror(value)
+        if (MIRROR_PRESETS.some(p => p.value === value)) {
+          setMirrorChoice(value)
+        } else {
+          setMirrorChoice('custom')
+          setCustomMirror(value)
+        }
+      })
+      .catch(() => {})
     const off = window.electronAPI?.update.onStatus(setUpdateStatus)
     return () => off?.()
   }, [])
+
+  const applyMirror = (value: string) => {
+    setMirror(value)
+    window.electronAPI?.update.setMirror(value).catch(() => {})
+  }
+
+  const handleMirrorToggle = (on: boolean) => {
+    applyMirror(on ? DEFAULT_MIRROR : 'off')
+    if (on) setMirrorChoice(DEFAULT_MIRROR)
+  }
+
+  const handleMirrorChoice = (value: string) => {
+    setMirrorChoice(value)
+    if (value !== 'custom') applyMirror(value)
+  }
+
+  const applyCustomMirror = () => {
+    const trimmed = customMirror.trim()
+    if (!trimmed) return
+    const normalized = /\/$/.test(trimmed) ? trimmed : trimmed + '/'
+    applyMirror(normalized)
+  }
 
   const handleImport = async () => {
     const r = await window.electronAPI?.data.import()
@@ -152,6 +205,61 @@ export default function SettingsPage() {
             </Button>
           )}
         </div>
+
+        {/* Download acceleration — Windows only (mac has no in-app update) */}
+        {!isMac && (
+          <div className="mt-3 border-t border-border pt-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-foreground">下载加速</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  通过镜像节点下载更新包；安装包经 SHA512 校验，镜像无法篡改内容
+                </p>
+              </div>
+              <Switch checked={mirror !== 'off'} onCheckedChange={handleMirrorToggle} />
+            </div>
+
+            {mirror !== 'off' && (
+              <div className="mt-2 space-y-2">
+                <Select value={mirrorChoice} onValueChange={handleMirrorChoice}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MIRROR_PRESETS.map(p => (
+                      <SelectItem key={p.value} value={p.value}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">自定义镜像</SelectItem>
+                  </SelectContent>
+                </Select>
+                {mirrorChoice === 'custom' && (
+                  <div className="flex gap-2">
+                    <Input
+                      value={customMirror}
+                      onChange={e => setCustomMirror(e.target.value)}
+                      onBlur={applyCustomMirror}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') applyCustomMirror()
+                      }}
+                      placeholder="自定义镜像前缀，如 https://your-mirror.example/"
+                      className="h-8 text-xs"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={applyCustomMirror}
+                      disabled={!customMirror.trim()}
+                    >
+                      应用
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {!isMac && updateStatus && (
           <div className="mt-3 text-sm">

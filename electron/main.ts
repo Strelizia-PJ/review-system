@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, protocol, net, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, protocol, net, dialog, session, shell } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import dayjs from 'dayjs'
@@ -420,6 +420,50 @@ function setupIPC() {
 // Windows only: unsigned macOS builds cannot auto-update (Gatekeeper).
 const RELEASES_URL = 'https://github.com/Strelizia-PJ/review-system/releases/latest'
 
+// ---- Update download mirror (GitHub acceleration) ----
+// electron-updater downloads installers straight from github.com, which is
+// slow in some regions. We redirect just the release-asset requests through
+// a mirror prefix; latest.yml (with SHA512) still comes from the GitHub API,
+// so a mirror can only forward bytes — tampered payloads fail verification.
+const MIRROR_SETTING_KEY = 'update_mirror'
+const DEFAULT_MIRROR = 'https://ghfast.top/'
+
+let updateMirrorPrefix = ''
+// Set while a download is in flight; used to decide if an error is a
+// download-phase failure worth retrying without the mirror
+let downloadInFlight = false
+// One direct-connection retry per session after a mirror download failure
+let retriedDirect = false
+
+function applyUpdateMirror(): void {
+  session.defaultSession.webRequest.onBeforeRequest(
+    { urls: ['*://github.com/*releases/download/*'] },
+    (details, callback) => {
+      if (!updateMirrorPrefix || details.url.startsWith(updateMirrorPrefix)) {
+        callback({})
+        return
+      }
+      callback({ redirectURL: updateMirrorPrefix + details.url })
+    }
+  )
+}
+
+function loadMirrorSetting(): void {
+  const stored = getData().settings[MIRROR_SETTING_KEY]
+  // Default to the mirror on first run — direct GitHub downloads are the
+  // known pain point; users can switch to direct in Settings
+  updateMirrorPrefix = stored === undefined ? DEFAULT_MIRROR : stored === 'off' ? '' : stored
+  applyUpdateMirror()
+}
+
+function setUpdateMirror(value: string): void {
+  // value: 'off' or a mirror prefix like 'https://ghfast.top/'
+  updateMirrorPrefix = value === 'off' ? '' : value
+  getData().settings[MIRROR_SETTING_KEY] = value
+  saveData()
+  applyUpdateMirror()
+}
+
 type UpdateStatus =
   | { event: 'checking' }
   | { event: 'available'; version: string }
@@ -436,6 +480,7 @@ function setupAutoUpdate() {
   if (!app.isPackaged || process.platform !== 'win32') {
     // Renderer still needs the version/platform IPC below
   } else {
+    loadMirrorSetting()
     autoUpdater.autoDownload = true
     autoUpdater.on('checking-for-update', () => sendUpdateStatus({ event: 'checking' }))
     autoUpdater.on('update-available', info =>
@@ -444,19 +489,50 @@ function setupAutoUpdate() {
     autoUpdater.on('update-not-available', info =>
       sendUpdateStatus({ event: 'not-available', version: info.version })
     )
-    autoUpdater.on('download-progress', progress =>
+    autoUpdater.on('download-progress', progress => {
+      downloadInFlight = true
       sendUpdateStatus({ event: 'downloading', percent: Math.round(progress.percent) })
-    )
-    autoUpdater.on('update-downloaded', info =>
+    })
+    autoUpdater.on('update-downloaded', info => {
+      downloadInFlight = false
       sendUpdateStatus({ event: 'downloaded', version: info.version })
-    )
-    autoUpdater.on('error', err => sendUpdateStatus({ event: 'error', message: err?.message || String(err) }))
+    })
+    autoUpdater.on('error', err => {
+      const message = err?.message || String(err)
+      // Mirror download failed — retry once via direct connection before
+      // surfacing the error (user's saved preference stays untouched)
+      if (downloadInFlight && updateMirrorPrefix && !retriedDirect) {
+        retriedDirect = true
+        downloadInFlight = false
+        updateMirrorPrefix = ''
+        applyUpdateMirror()
+        sendUpdateStatus({ event: 'checking' })
+        autoUpdater.checkForUpdates().catch(() => {})
+        return
+      }
+      sendUpdateStatus({ event: 'error', message })
+    })
     // Silent check 30s after launch; renderer can trigger manual checks too
     setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 30_000)
   }
 
   ipcMain.handle('update:get-version', () => app.getVersion())
   ipcMain.handle('update:get-platform', () => process.platform)
+  ipcMain.handle('update:get-mirror', () => {
+    const stored = getData().settings[MIRROR_SETTING_KEY]
+    return stored === undefined ? DEFAULT_MIRROR : stored
+  })
+  ipcMain.handle('update:set-mirror', (_event, value: string) => {
+    retriedDirect = false
+    if (app.isPackaged && process.platform === 'win32') {
+      setUpdateMirror(value)
+    } else {
+      // Dev / non-updating platforms: persist only, no live redirection
+      getData().settings[MIRROR_SETTING_KEY] = value
+      saveData()
+      updateMirrorPrefix = value === 'off' ? '' : value
+    }
+  })
   ipcMain.handle('update:check', () => {
     if (!app.isPackaged || process.platform !== 'win32') {
       sendUpdateStatus({ event: 'not-available', version: app.getVersion() })

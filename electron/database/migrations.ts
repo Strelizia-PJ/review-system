@@ -145,6 +145,22 @@ const migrations: Record<number, () => void> = {
     if (!Array.isArray((data as any).mistake_types)) {
       ;(data as any).mistake_types = []
     }
+  },
+  15: () => {
+    const data = getData()
+    if (!Array.isArray((data as any).categories)) {
+      ;(data as any).categories = []
+    }
+    for (const mp of data.mistake_points) {
+      if ((mp as any).category_id === undefined) {
+        ;(mp as any).category_id = null
+      }
+    }
+    for (const mt of data.mistake_types) {
+      if ((mt as any).category_id === undefined) {
+        ;(mt as any).category_id = null
+      }
+    }
   }
 }
 

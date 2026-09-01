@@ -9,9 +9,9 @@ interface MistakeTypeState {
   error: string | null
 
   fetchList: () => Promise<void>
-  add: (content: string) => Promise<void>
+  add: (content: string, categoryId?: number | null) => Promise<void>
   increment: (id: number) => Promise<void>
-  update: (id: number, content: string) => Promise<void>
+  update: (id: number, content: string, categoryId?: number | null) => Promise<void>
   remove: (id: number) => Promise<void>
 }
 
@@ -32,10 +32,10 @@ export const useMistakeTypes = create<MistakeTypeState>((set, get) => ({
     }
   },
 
-  add: async (content: string) => {
+  add: async (content: string, categoryId?: number | null) => {
     if (!api()) return
     try {
-      await api()!.add(content)
+      await api()!.add(content, categoryId)
       await get().fetchList()
     } catch (e) {
       console.error('Failed to add mistake type:', e)
@@ -54,10 +54,10 @@ export const useMistakeTypes = create<MistakeTypeState>((set, get) => ({
     }
   },
 
-  update: async (id: number, content: string) => {
+  update: async (id: number, content: string, categoryId?: number | null) => {
     if (!api()) return
     try {
-      await api()!.update(id, content)
+      await api()!.update(id, content, categoryId)
       await get().fetchList()
     } catch (e) {
       console.error('Failed to update mistake type:', e)

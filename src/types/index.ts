@@ -65,6 +65,15 @@ export interface MistakePoint {
   id: number
   content: string
   count: number
+  category_id: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Category {
+  id: number
+  name: string
+  parent_id: number | null
   created_at: string
   updated_at: string
 }

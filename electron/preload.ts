@@ -42,18 +42,28 @@ const api = {
       ipcRenderer.invoke('study:get-month-review-stats', year, month)
   },
   mistake: {
-    add: (content: string) => ipcRenderer.invoke('mistake:add', content),
+    add: (content: string, categoryId?: number | null) =>
+      ipcRenderer.invoke('mistake:add', content, categoryId),
     list: () => ipcRenderer.invoke('mistake:list'),
     increment: (id: number) => ipcRenderer.invoke('mistake:increment', id),
-    update: (id: number, content: string) => ipcRenderer.invoke('mistake:update', id, content),
+    update: (id: number, content: string, categoryId?: number | null) =>
+      ipcRenderer.invoke('mistake:update', id, content, categoryId),
     remove: (id: number) => ipcRenderer.invoke('mistake:delete', id)
   },
   mistakeType: {
-    add: (content: string) => ipcRenderer.invoke('mistakeType:add', content),
+    add: (content: string, categoryId?: number | null) =>
+      ipcRenderer.invoke('mistakeType:add', content, categoryId),
     list: () => ipcRenderer.invoke('mistakeType:list'),
     increment: (id: number) => ipcRenderer.invoke('mistakeType:increment', id),
-    update: (id: number, content: string) => ipcRenderer.invoke('mistakeType:update', id, content),
+    update: (id: number, content: string, categoryId?: number | null) =>
+      ipcRenderer.invoke('mistakeType:update', id, content, categoryId),
     remove: (id: number) => ipcRenderer.invoke('mistakeType:delete', id)
+  },
+  category: {
+    add: (name: string, parentId: number | null) => ipcRenderer.invoke('category:add', name, parentId),
+    list: () => ipcRenderer.invoke('category:list'),
+    update: (id: number, name: string) => ipcRenderer.invoke('category:update', id, name),
+    remove: (id: number) => ipcRenderer.invoke('category:delete', id)
   },
   image: {
     save: (kpId: number, fileData: Uint8Array, originalName: string) =>

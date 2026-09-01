@@ -37,7 +37,11 @@ import {
   listMistakeTypes,
   incrementMistakeType,
   updateMistakeType,
-  deleteMistakeType
+  deleteMistakeType,
+  addCategory,
+  listCategories,
+  updateCategory,
+  deleteCategory
 } from './database/queries'
 import { scanGameSaves, applyGameData } from './database/game-import'
 import { saveImage, deleteImages, deleteOrphanImages } from './database/images'
@@ -214,9 +218,9 @@ function setupIPC() {
   })
 
   // Mistake Points
-  ipcMain.handle('mistake:add', (_event, content: string) => {
+  ipcMain.handle('mistake:add', (_event, content: string, categoryId?: number | null) => {
     try {
-      return addMistakePoint(content.trim().slice(0, 5000))
+      return addMistakePoint(content.trim().slice(0, 5000), categoryId)
     } catch (e) {
       console.error('Add mistake point failed:', e)
       throw e
@@ -236,9 +240,9 @@ function setupIPC() {
     }
   })
 
-  ipcMain.handle('mistake:update', (_event, id: number, content: string) => {
+  ipcMain.handle('mistake:update', (_event, id: number, content: string, categoryId?: number | null) => {
     try {
-      updateMistakePoint(id, content.trim().slice(0, 5000))
+      updateMistakePoint(id, content.trim().slice(0, 5000), categoryId)
     } catch (e) {
       console.error('Update mistake point failed:', e)
       throw e
@@ -255,9 +259,9 @@ function setupIPC() {
   })
 
   // Mistake Types
-  ipcMain.handle('mistakeType:add', (_event, content: string) => {
+  ipcMain.handle('mistakeType:add', (_event, content: string, categoryId?: number | null) => {
     try {
-      return addMistakeType(content.trim().slice(0, 5000))
+      return addMistakeType(content.trim().slice(0, 5000), categoryId)
     } catch (e) {
       console.error('Add mistake type failed:', e)
       throw e
@@ -277,9 +281,9 @@ function setupIPC() {
     }
   })
 
-  ipcMain.handle('mistakeType:update', (_event, id: number, content: string) => {
+  ipcMain.handle('mistakeType:update', (_event, id: number, content: string, categoryId?: number | null) => {
     try {
-      updateMistakeType(id, content.trim().slice(0, 5000))
+      updateMistakeType(id, content.trim().slice(0, 5000), categoryId)
     } catch (e) {
       console.error('Update mistake type failed:', e)
       throw e
@@ -291,6 +295,38 @@ function setupIPC() {
       deleteMistakeType(id)
     } catch (e) {
       console.error('Delete mistake type failed:', e)
+      throw e
+    }
+  })
+
+  // Categories
+  ipcMain.handle('category:add', (_event, name: string, parentId: number | null) => {
+    try {
+      return addCategory(name, parentId)
+    } catch (e) {
+      console.error('Add category failed:', e)
+      throw e
+    }
+  })
+
+  ipcMain.handle('category:list', () => {
+    return listCategories()
+  })
+
+  ipcMain.handle('category:update', (_event, id: number, name: string) => {
+    try {
+      updateCategory(id, name)
+    } catch (e) {
+      console.error('Update category failed:', e)
+      throw e
+    }
+  })
+
+  ipcMain.handle('category:delete', (_event, id: number) => {
+    try {
+      deleteCategory(id)
+    } catch (e) {
+      console.error('Delete category failed:', e)
       throw e
     }
   })

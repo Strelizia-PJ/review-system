@@ -1,17 +1,22 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import MDEditor from '@uiw/react-md-editor'
 import remarkMath from 'remark-math'
 import remarkBreaks from 'remark-breaks'
 import rehypeKatex from 'rehype-katex'
 import { motion, AnimatePresence } from 'motion/react'
-import { Plus, Pencil, X } from 'lucide-react'
+import { Plus, Pencil, X, FolderTree } from 'lucide-react'
 import { useMistakeTypes } from '../../hooks/useMistakeTypes'
+import { useCategories } from '../../hooks/useCategories'
 import { useTheme } from '../../hooks/useTheme'
 import { Input } from '../ui/Input'
 import { Button } from '../ui/Button'
+import { Badge } from '../shared/Badge'
 import { ErrorBar } from '../shared/Bars'
 import EmptyState from '../shared/EmptyState'
 import ConfirmDialog from '../shared/ConfirmDialog'
+import CategorySelect from '../categories/CategorySelect'
+import CategoryFilterPopover from '../categories/CategoryFilterPopover'
+import CategoryManageDialog from '../categories/CategoryManageDialog'
 import {
   Dialog,
   DialogContent,
@@ -28,10 +33,20 @@ const iconBtn =
 
 export default function MistakeTypesPage() {
   const { items, loading, error, fetchList, add, increment, update, remove } = useMistakeTypes()
+  const { items: categories } = useCategories()
   const { isDark } = useTheme()
   const [content, setContent] = useState('')
   const [adding, setAdding] = useState(false)
-  const [editTarget, setEditTarget] = useState<{ id: number; original: string } | null>(null)
+  const [addCategoryId, setAddCategoryId] = useState<number | null>(null)
+  const [filterIds, setFilterIds] = useState<Set<number>>(new Set())
+  const [filterUncategorized, setFilterUncategorized] = useState(false)
+  const [manageOpen, setManageOpen] = useState(false)
+  const [editCategoryId, setEditCategoryId] = useState<number | null>(null)
+  const [editTarget, setEditTarget] = useState<{
+    id: number
+    original: string
+    originalCategory: number | null
+  } | null>(null)
   const [editContent, setEditContent] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; content: string } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -45,7 +60,7 @@ export default function MistakeTypesPage() {
     if (!trimmed || adding) return
     setAdding(true)
     try {
-      await add(trimmed)
+      await add(trimmed, addCategoryId)
       setContent('')
       inputRef.current?.focus()
     } finally {
@@ -57,18 +72,19 @@ export default function MistakeTypesPage() {
     if (e.key === 'Enter') handleAdd()
   }
 
-  const openEdit = (id: number, current: string) => {
+  const openEdit = (id: number, current: string, categoryId: number | null) => {
     setEditContent(current)
-    setEditTarget({ id, original: current })
+    setEditCategoryId(categoryId)
+    setEditTarget({ id, original: current, originalCategory: categoryId })
   }
 
   const saveEdit = async () => {
     if (!editTarget) return
     const trimmed = editContent.trim()
-    const { id, original } = editTarget
+    const { id, original, originalCategory } = editTarget
     setEditTarget(null)
-    if (trimmed && trimmed !== original.trim()) {
-      await update(id, trimmed)
+    if (trimmed && (trimmed !== original.trim() || editCategoryId !== originalCategory)) {
+      await update(id, trimmed, editCategoryId)
     }
   }
 
@@ -80,6 +96,26 @@ export default function MistakeTypesPage() {
   const truncated = (s: string) => {
     const t = plainText(s)
     return t.length > 30 ? t.slice(0, 30) + '...' : t
+  }
+
+  const visibleItems = useMemo(() => {
+    if (filterIds.size === 0 && !filterUncategorized) return items
+    const ids = new Set(filterIds)
+    for (const c of categories) {
+      if (c.parent_id !== null && filterIds.has(c.parent_id)) ids.add(c.id)
+    }
+    return items.filter(it => (it.category_id === null ? filterUncategorized : ids.has(it.category_id)))
+  }, [items, categories, filterIds, filterUncategorized])
+
+  const categoryLabel = (id: number | null): string | null => {
+    if (id === null) return null
+    const cat = categories.find(c => c.id === id)
+    if (!cat) return null
+    if (cat.parent_id !== null) {
+      const parent = categories.find(c => c.id === cat.parent_id)
+      return parent ? `${parent.name} / ${cat.name}` : cat.name
+    }
+    return cat.name
   }
 
   const colorMode = isDark ? 'dark' : 'light'
@@ -96,11 +132,36 @@ export default function MistakeTypesPage() {
           maxLength={5000}
           placeholder="记录一个错题类型（如：概念不清、计算失误、审题偏差），按 Enter 添加..."
           autoFocus
+          className="flex-1"
         />
+        <CategorySelect value={addCategoryId} onChange={setAddCategoryId} className="w-44 shrink-0" />
         <Button onClick={handleAdd} disabled={!content.trim() || adding} className="whitespace-nowrap">
           <Plus className="h-4 w-4" />
           添加
         </Button>
+      </div>
+
+      {/* Category tools */}
+      <div className="flex items-center gap-2">
+        {categories.length > 0 && (
+          <CategoryFilterPopover
+            selected={filterIds}
+            includeUncategorized={filterUncategorized}
+            onChange={(ids, unc) => {
+              setFilterIds(ids)
+              setFilterUncategorized(unc)
+            }}
+          />
+        )}
+        <Button variant="outline" size="sm" onClick={() => setManageOpen(true)}>
+          <FolderTree className="h-4 w-4" />
+          管理分类
+        </Button>
+        {items.length > 0 && (
+          <span className="ml-auto text-xs text-muted-foreground">
+            {visibleItems.length} / {items.length} 条
+          </span>
+        )}
       </div>
 
       {error && <ErrorBar>{error}</ErrorBar>}
@@ -116,10 +177,12 @@ export default function MistakeTypesPage() {
           title="暂无错题类型"
           description="把错题按原因分类（概念不清 / 计算失误 / 审题偏差…），找准薄弱环节"
         />
+      ) : visibleItems.length === 0 ? (
+        <div className="py-8 text-center text-sm text-muted-foreground">当前筛选下没有词条</div>
       ) : (
         <div className="space-y-2">
           <AnimatePresence mode="popLayout" initial={false}>
-            {items.map((item, idx) => (
+            {visibleItems.map((item, idx) => (
               <motion.div
                 key={item.id}
                 layout
@@ -139,6 +202,16 @@ export default function MistakeTypesPage() {
                     rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
                   />
                 </div>
+
+                {/* Category badge */}
+                {categoryLabel(item.category_id) && (
+                  <Badge
+                    className="max-w-[8rem] shrink-0 truncate"
+                    title={categoryLabel(item.category_id) ?? undefined}
+                  >
+                    {categoryLabel(item.category_id)}
+                  </Badge>
+                )}
 
                 {/* Count badge */}
                 <span
@@ -161,7 +234,11 @@ export default function MistakeTypesPage() {
                 </Button>
 
                 <div className="flex shrink-0 items-center">
-                  <button onClick={() => openEdit(item.id, item.content)} className={iconBtn} title="编辑">
+                  <button
+                    onClick={() => openEdit(item.id, item.content, item.category_id)}
+                    className={iconBtn}
+                    title="编辑"
+                  >
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button
@@ -191,6 +268,10 @@ export default function MistakeTypesPage() {
               <DialogTitle>编辑错题类型</DialogTitle>
               <DialogDescription>支持 Markdown 与 LaTeX 公式（$...$ 行内、$$...$$ 块级）。</DialogDescription>
             </DialogHeader>
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 text-sm text-muted-foreground">分类</span>
+              <CategorySelect value={editCategoryId} onChange={setEditCategoryId} />
+            </div>
             <div data-color-mode={colorMode}>
               <MDEditor
                 value={editContent}
@@ -230,6 +311,8 @@ export default function MistakeTypesPage() {
           setDeleteTarget(null)
         }}
       />
+
+      <CategoryManageDialog open={manageOpen} onOpenChange={setManageOpen} />
     </div>
   )
 }

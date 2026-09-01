@@ -29,12 +29,24 @@ export interface MistakePointRow {
   id: number
   content: string
   count: number
+  // Category assignment, null = uncategorized (added in schema v15)
+  category_id: number | null
   created_at: string
   updated_at: string
 }
 
 /** Mistake-type catalog entries share the exact shape of mistake points. */
 export type MistakeTypeRow = MistakePointRow
+
+/** User-defined two-level categories shared by mistake points and mistake types. */
+export interface CategoryRow {
+  id: number
+  name: string
+  // null = top-level category; non-null = child category (two levels max)
+  parent_id: number | null
+  created_at: string
+  updated_at: string
+}
 
 export interface AppData {
   schema_version: number
@@ -45,6 +57,7 @@ export interface AppData {
   study_sessions: StudySessionRow[]
   mistake_points: MistakePointRow[]
   mistake_types: MistakeTypeRow[]
+  categories: CategoryRow[]
   settings: Record<string, string>
 }
 
@@ -73,7 +86,7 @@ export interface ReviewRecordRow {
 }
 
 /** Bump when adding a migration in migrations.ts; migrations run up to this version. */
-export const CURRENT_SCHEMA_VERSION = 14
+export const CURRENT_SCHEMA_VERSION = 15
 
 const DEFAULT_DATA: AppData = {
   schema_version: CURRENT_SCHEMA_VERSION,
@@ -84,6 +97,7 @@ const DEFAULT_DATA: AppData = {
   study_sessions: [],
   mistake_points: [],
   mistake_types: [],
+  categories: [],
   settings: {}
 }
 
@@ -96,6 +110,7 @@ let nextCompletionId = 1
 let nextSessionId = 1
 let nextMistakeId = 1
 let nextMistakeTypeId = 1
+let nextCategoryId = 1
 
 export function getDbPath(): string {
   if (!dbPath) {
@@ -154,6 +169,9 @@ export function loadData(): AppData {
   if (!Array.isArray(data.mistake_types)) {
     data.mistake_types = []
   }
+  if (!Array.isArray(data.categories)) {
+    data.categories = []
+  }
 
   // Initialize ID counters (filter out NaN/corrupted IDs)
   const validNum = (n: unknown): n is number => typeof n === 'number' && !isNaN(n)
@@ -185,6 +203,10 @@ export function loadData(): AppData {
   if (data!.mistake_types) {
     const mtNext = maxId(data!.mistake_types)
     if (mtNext !== undefined) nextMistakeTypeId = mtNext
+  }
+  if (data!.categories) {
+    const cNext = maxId(data!.categories)
+    if (cNext !== undefined) nextCategoryId = cNext
   }
 
   return data!
@@ -254,4 +276,8 @@ export function getNextMistakeId(): number {
 
 export function getNextMistakeTypeId(): number {
   return nextMistakeTypeId++
+}
+
+export function getNextCategoryId(): number {
+  return nextCategoryId++
 }

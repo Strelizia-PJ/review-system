@@ -8,14 +8,17 @@ import {
   getNextCompletionId,
   getNextSessionId,
   getNextMistakeId,
-  getNextMistakeTypeId
+  getNextMistakeTypeId,
+  getNextCategoryId
 } from './connection'
 import type {
   KnowledgePointRow,
   ReviewRecordRow,
   DailyPlanRow,
   MistakePointRow,
-  MistakeTypeRow
+  MistakeTypeRow,
+  CategoryRow,
+  AppData
 } from './connection'
 import { createEmptyCard, fsrs, Rating } from 'ts-fsrs'
 
@@ -562,11 +565,18 @@ export function getReviewStats(): {
 
 // ---- Mistake Points ----
 
-export function addMistakePoint(content: string): { id: number } {
+export function addMistakePoint(content: string, categoryId?: number | null): { id: number } {
   const data = getData()
   const now = dayjs().format('YYYY-MM-DD HH:mm:ss')
   const id = getNextMistakeId()
-  data.mistake_points.push({ id, content, count: 1, created_at: now, updated_at: now })
+  data.mistake_points.push({
+    id,
+    content,
+    count: 1,
+    category_id: resolveCategoryId(data, categoryId ?? null),
+    created_at: now,
+    updated_at: now
+  })
   saveData()
   return { id }
 }
@@ -589,11 +599,15 @@ export function incrementMistakePoint(id: number): void {
   saveData()
 }
 
-export function updateMistakePoint(id: number, content: string): void {
+export function updateMistakePoint(id: number, content: string, categoryId?: number | null): void {
   const data = getData()
   const mp = data.mistake_points.find(m => m.id === id)
   if (!mp) throw new Error('Mistake point not found')
   mp.content = content
+  // undefined = leave the category unchanged; null = explicitly uncategorize
+  if (categoryId !== undefined) {
+    mp.category_id = resolveCategoryId(data, categoryId)
+  }
   mp.updated_at = dayjs().format('YYYY-MM-DD HH:mm:ss')
   saveData()
 }
@@ -606,11 +620,18 @@ export function deleteMistakePoint(id: number): void {
 
 // ---- Mistake Types ----
 
-export function addMistakeType(content: string): { id: number } {
+export function addMistakeType(content: string, categoryId?: number | null): { id: number } {
   const data = getData()
   const now = dayjs().format('YYYY-MM-DD HH:mm:ss')
   const id = getNextMistakeTypeId()
-  data.mistake_types.push({ id, content, count: 1, created_at: now, updated_at: now })
+  data.mistake_types.push({
+    id,
+    content,
+    count: 1,
+    category_id: resolveCategoryId(data, categoryId ?? null),
+    created_at: now,
+    updated_at: now
+  })
   saveData()
   return { id }
 }
@@ -633,11 +654,15 @@ export function incrementMistakeType(id: number): void {
   saveData()
 }
 
-export function updateMistakeType(id: number, content: string): void {
+export function updateMistakeType(id: number, content: string, categoryId?: number | null): void {
   const data = getData()
   const mt = data.mistake_types.find(m => m.id === id)
   if (!mt) throw new Error('Mistake type not found')
   mt.content = content
+  // undefined = leave the category unchanged; null = explicitly uncategorize
+  if (categoryId !== undefined) {
+    mt.category_id = resolveCategoryId(data, categoryId)
+  }
   mt.updated_at = dayjs().format('YYYY-MM-DD HH:mm:ss')
   saveData()
 }
@@ -645,6 +670,89 @@ export function updateMistakeType(id: number, content: string): void {
 export function deleteMistakeType(id: number): void {
   const data = getData()
   data.mistake_types = data.mistake_types.filter(m => m.id !== id)
+  saveData()
+}
+
+// ---- Categories ----
+
+const MAX_CATEGORY_NAME_LENGTH = 50
+
+function normalizeCategoryName(name: string): string {
+  const trimmed = name.trim().slice(0, MAX_CATEGORY_NAME_LENGTH)
+  if (!trimmed) throw new Error('分类名不能为空')
+  return trimmed
+}
+
+/** Resolve a category id for entry assignment; silently falls back to uncategorized
+ *  when the category no longer exists (e.g. deleted concurrently). */
+function resolveCategoryId(data: AppData, categoryId: number | null): number | null {
+  if (categoryId === null) return null
+  return data.categories.some(c => c.id === categoryId) ? categoryId : null
+}
+
+function assertCategoryNameUnique(
+  data: AppData,
+  name: string,
+  parentId: number | null,
+  excludeId?: number
+): void {
+  const duplicate = data.categories.some(
+    c => c.parent_id === parentId && c.id !== excludeId && c.name === name
+  )
+  if (duplicate) throw new Error('同级已存在同名分类')
+}
+
+export function addCategory(name: string, parentId: number | null = null): { id: number } {
+  const data = getData()
+  const normalizedName = normalizeCategoryName(name)
+  if (parentId !== null) {
+    const parent = data.categories.find(c => c.id === parentId)
+    if (!parent) throw new Error('父分类不存在')
+    if (parent.parent_id !== null) throw new Error('分类最多两级，不能在子分类下再建分类')
+  }
+  assertCategoryNameUnique(data, normalizedName, parentId)
+  const now = dayjs().format('YYYY-MM-DD HH:mm:ss')
+  const id = getNextCategoryId()
+  data.categories.push({ id, name: normalizedName, parent_id: parentId, created_at: now, updated_at: now })
+  saveData()
+  return { id }
+}
+
+/** List categories — oldest first; the renderer groups them into a two-level tree. */
+export function listCategories(): CategoryRow[] {
+  const data = getData()
+  return [...data.categories].sort((a, b) => a.created_at.localeCompare(b.created_at))
+}
+
+export function updateCategory(id: number, name: string): void {
+  const data = getData()
+  const category = data.categories.find(c => c.id === id)
+  if (!category) throw new Error('Category not found')
+  const normalizedName = normalizeCategoryName(name)
+  assertCategoryNameUnique(data, normalizedName, category.parent_id, id)
+  category.name = normalizedName
+  category.updated_at = dayjs().format('YYYY-MM-DD HH:mm:ss')
+  saveData()
+}
+
+export function deleteCategory(id: number): void {
+  const data = getData()
+  const category = data.categories.find(c => c.id === id)
+  if (!category) throw new Error('Category not found')
+  // Children move up one level; entries assigned to the category become uncategorized
+  for (const c of data.categories) {
+    if (c.parent_id === id) {
+      c.parent_id = category.parent_id
+      c.updated_at = dayjs().format('YYYY-MM-DD HH:mm:ss')
+    }
+  }
+  for (const mp of data.mistake_points) {
+    if (mp.category_id === id) mp.category_id = null
+  }
+  for (const mt of data.mistake_types) {
+    if (mt.category_id === id) mt.category_id = null
+  }
+  data.categories = data.categories.filter(c => c.id !== id)
   saveData()
 }
 

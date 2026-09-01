@@ -11,7 +11,8 @@ import type {
   MonthStats,
   MonthReviewStats,
   ScannedGameData,
-  MistakePoint
+  MistakePoint,
+  Category
 } from './types'
 
 declare global {
@@ -70,17 +71,23 @@ declare global {
         getMonthReviewStats: (year: number, month: number) => Promise<MonthReviewStats>
       }
       mistake: {
-        add: (content: string) => Promise<{ id: number }>
+        add: (content: string, categoryId?: number | null) => Promise<{ id: number }>
         list: () => Promise<MistakePoint[]>
         increment: (id: number) => Promise<void>
-        update: (id: number, content: string) => Promise<void>
+        update: (id: number, content: string, categoryId?: number | null) => Promise<void>
         remove: (id: number) => Promise<void>
       }
       mistakeType: {
-        add: (content: string) => Promise<{ id: number }>
+        add: (content: string, categoryId?: number | null) => Promise<{ id: number }>
         list: () => Promise<MistakePoint[]>
         increment: (id: number) => Promise<void>
-        update: (id: number, content: string) => Promise<void>
+        update: (id: number, content: string, categoryId?: number | null) => Promise<void>
+        remove: (id: number) => Promise<void>
+      }
+      category: {
+        add: (name: string, parentId: number | null) => Promise<{ id: number }>
+        list: () => Promise<Category[]>
+        update: (id: number, name: string) => Promise<void>
         remove: (id: number) => Promise<void>
       }
       image: {

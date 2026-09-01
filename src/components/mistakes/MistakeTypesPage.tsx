@@ -268,7 +268,7 @@ export default function MistakeTypesPage() {
               <DialogTitle>编辑错题类型</DialogTitle>
               <DialogDescription>支持 Markdown 与 LaTeX 公式（$...$ 行内、$$...$$ 块级）。</DialogDescription>
             </DialogHeader>
-            <div className="flex items-center gap-2">
+            <div className="mb-3 flex items-center gap-2">
               <span className="shrink-0 text-sm text-muted-foreground">分类</span>
               <CategorySelect value={editCategoryId} onChange={setEditCategoryId} />
             </div>

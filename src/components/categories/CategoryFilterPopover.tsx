@@ -46,7 +46,7 @@ export default function CategoryFilterPopover({
           <ChevronDown className="h-4 w-4 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 space-y-1">
+      <PopoverContent className="w-64 space-y-1.5">
         <label className="flex cursor-pointer items-center gap-2 text-sm">
           <Checkbox
             checked={selected.size === 0 && !includeUncategorized}

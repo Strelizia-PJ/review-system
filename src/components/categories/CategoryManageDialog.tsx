@@ -110,7 +110,7 @@ export default function CategoryManageDialog({ open, onOpenChange }: CategoryMan
           </DialogHeader>
 
           {/* Add form */}
-          <div className="flex gap-2">
+          <div className="mb-3 flex gap-2">
             <Input
               value={newName}
               onChange={e => setNewName(e.target.value)}
@@ -142,8 +142,8 @@ export default function CategoryManageDialog({ open, onOpenChange }: CategoryMan
             </Button>
           </div>
 
-          {localError && <ErrorBar>{localError}</ErrorBar>}
-          {error && <ErrorBar>{error}</ErrorBar>}
+          {localError && <ErrorBar className="mb-3">{localError}</ErrorBar>}
+          {error && <ErrorBar className="mb-3">{error}</ErrorBar>}
 
           {/* Tree list */}
           {items.length === 0 ? (
